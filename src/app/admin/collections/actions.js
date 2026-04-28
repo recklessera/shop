@@ -1,0 +1,75 @@
+'use server'
+
+import { prisma } from '@/lib/prisma'
+import { revalidatePath } from 'next/cache'
+import { v2 as cloudinary } from 'cloudinary'
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+})
+
+async function uploadToCloudinary(file) {
+  // Bulletproof check: If no file, or if Next.js passes an empty string/blob, skip upload
+  if (!file || typeof file === 'string' || file.size === 0 || file.name === 'undefined') {
+    return null
+  }
+
+  const arrayBuffer = await file.arrayBuffer()
+  const buffer = Buffer.from(arrayBuffer)
+
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      { folder: 'reckless-era/collections' },
+      (error, result) => {
+        if (error) reject(error)
+        else resolve(result.secure_url)
+      }
+    ).end(buffer)
+  })
+}
+
+export async function createCollection(formData) {
+  const title = formData.get('title')
+  const description = formData.get('description')
+  const coverImageFile = formData.get('coverImage')
+  const bannerImageFile = formData.get('bannerImage')
+  
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+
+  try {
+    const [coverImageUrl, bannerImageUrl] = await Promise.all([
+      uploadToCloudinary(coverImageFile),
+      uploadToCloudinary(bannerImageFile)
+    ])
+
+    await prisma.collection.create({
+      data: {
+        title,
+        slug,
+        description: description || null,
+        cover_image_url: coverImageUrl || null,   
+        banner_image_url: bannerImageUrl || null,  
+      },
+    })
+    revalidatePath('/admin/collections')
+  } catch (error) {
+    console.error("RAW ERROR:", error)
+    // We are now throwing the EXACT error message to the UI so we can see what's wrong
+    throw new Error(`Upload Failed: ${error.message || JSON.stringify(error)}`)
+  }
+}
+
+export async function deleteCollection(formData) {
+  const id = formData.get('id')
+
+  try {
+    await prisma.collection.delete({
+      where: { id },
+    })
+    revalidatePath('/admin/collections')
+  } catch (error) {
+    throw new Error('Failed to delete collection.')
+  }
+}

@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+@theme {
+  /* Mapping dynamic CSS variables for the Admin Dashboard theming */
+  --color-primary: var(--theme-primary);
+  --color-secondary: var(--theme-secondary);
+  --color-accent: var(--theme-accent);
+  --color-background: #ffffff;
+  --color-foreground: #111827;
+}
+
+@layer base {
+  /* Enforcing strict left-alignment on all typographic elements */
+  h1, h2, h3, h4, h5, h6, p, a, span {
+    text-align: left;
+  }
+}
