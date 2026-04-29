@@ -10,6 +10,7 @@ import {
   Image as ImageIcon, 
   FileText, 
   Settings,
+  Ticket,
   LogOut
 } from 'lucide-react'
 
@@ -30,6 +31,7 @@ export default async function AdminLayout({ children }) {
     { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
     { name: 'Gallery', href: '/admin/gallery', icon: ImageIcon },
     { name: 'Blog', href: '/admin/blog', icon: FileText },
+    { name: 'Discounts', href: '/admin/discounts', icon: Ticket },
     { name: 'Store Appearance', href: '/admin/settings', icon: Settings },
   ]
 

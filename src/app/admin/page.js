@@ -26,16 +26,13 @@ export default async function AdminDashboard() {
     take: 5
   })
 
-  // THE UPGRADE: Fetch Best Sellers
-  // 1. Group the OrderItems by product_id and sum up the quantities
   const bestSellersGroup = await prisma.orderItem.groupBy({
     by: ['product_id'],
     _sum: { quantity: true },
     orderBy: { _sum: { quantity: 'desc' } },
-    take: 4 // Get the top 4 selling items
+    take: 4 
   })
 
-  // 2. Fetch the actual product details for those top sellers
   const bestSellerIds = bestSellersGroup.map(item => item.product_id)
   const bestSellersProducts = await prisma.product.findMany({
     where: { id: { in: bestSellerIds } },
@@ -47,16 +44,73 @@ export default async function AdminDashboard() {
     }
   })
 
-  // 3. Merge the total quantities back with the product details
   const bestSellers = bestSellersGroup.map(group => {
     const product = bestSellersProducts.find(p => p.id === group.product_id)
     return {
       ...product,
       total_sold: group._sum.quantity
     }
-  }).filter(item => item.title) // Ensure the product hasn't been deleted
+  }).filter(item => item.title) 
 
   const initialMetrics = { revenue, ordersCount, productsCount }
+
+  // ---------------------------------------------------------
+  // 1. GENERATE DAILY DATA (LAST 7 DAYS)
+  // ---------------------------------------------------------
+  const last7Days = Array.from({length: 7}, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() - (6 - i))
+    d.setHours(0, 0, 0, 0)
+    return d
+  })
+
+  const orders7d = await prisma.order.findMany({
+    where: { created_at: { gte: last7Days[0] }, status: { not: 'cancelled' } },
+    select: { created_at: true, total_amount: true }
+  })
+
+  const chartData7d = last7Days.map(day => {
+    const dayStr = day.toLocaleDateString('en-US', { weekday: 'short' })
+    const dayOrders = orders7d.filter(o => new Date(o.created_at).toDateString() === day.toDateString())
+    return {
+      date: dayStr,
+      revenue: dayOrders.reduce((sum, o) => sum + o.total_amount, 0),
+      orders: dayOrders.length
+    }
+  })
+
+  // ---------------------------------------------------------
+  // 2. GENERATE MONTHLY DATA (LAST 6 MONTHS)
+  // ---------------------------------------------------------
+  const last6Months = Array.from({length: 6}, (_, i) => {
+    const d = new Date()
+    d.setMonth(d.getMonth() - (5 - i))
+    d.setDate(1) // Lock to the 1st of the month
+    d.setHours(0, 0, 0, 0)
+    // Create a strict window from the 1st of the month to the last day of the month
+    return { 
+      start: d, 
+      end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59) 
+    }
+  })
+
+  const orders6m = await prisma.order.findMany({
+    where: { created_at: { gte: last6Months[0].start }, status: { not: 'cancelled' } },
+    select: { created_at: true, total_amount: true }
+  })
+
+  const chartData6m = last6Months.map(monthData => {
+    const monthStr = monthData.start.toLocaleDateString('en-US', { month: 'short' }) // e.g., "Nov", "Dec"
+    const monthOrders = orders6m.filter(o => {
+      const orderDate = new Date(o.created_at)
+      return orderDate >= monthData.start && orderDate <= monthData.end
+    })
+    return {
+      date: monthStr,
+      revenue: monthOrders.reduce((sum, o) => sum + o.total_amount, 0),
+      orders: monthOrders.length
+    }
+  })
 
   return (
     <div className="max-w-7xl mx-auto w-full">
@@ -65,6 +119,8 @@ export default async function AdminDashboard() {
         lowStock={lowStock} 
         recentOrders={recentOrders} 
         bestSellers={bestSellers}
+        chartData7d={chartData7d} 
+        chartData6m={chartData6m}
       />
     </div>
   )

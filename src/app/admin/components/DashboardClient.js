@@ -7,22 +7,18 @@ import {
 } from 'recharts'
 import { Download, FileText, TrendingUp, AlertCircle, Package, Award } from 'lucide-react'
 
-export default function DashboardClient({ initialMetrics, lowStock, recentOrders, bestSellers }) {
-  const [timeRange, setTimeRange] = useState('30d')
+// Notice we now accept BOTH chart data arrays as props
+export default function DashboardClient({ initialMetrics, lowStock, recentOrders, bestSellers, chartData7d, chartData6m }) {
+  // Default view is the 7-day daily view
+  const [timeRange, setTimeRange] = useState('7d')
 
-  const chartData = [
-    { date: 'Mon', revenue: 120000, orders: 4 },
-    { date: 'Tue', revenue: 250000, orders: 8 },
-    { date: 'Wed', revenue: 180000, orders: 5 },
-    { date: 'Thu', revenue: 320000, orders: 12 },
-    { date: 'Fri', revenue: 410000, orders: 15 },
-    { date: 'Sat', revenue: 550000, orders: 22 },
-    { date: 'Sun', revenue: 480000, orders: 18 },
-  ]
+  // Dynamically choose which data array to feed into the chart and CSV
+  const activeChartData = timeRange === '7d' ? chartData7d : chartData6m
 
   const downloadCSV = () => {
     const headers = "Date,Revenue (NGN),Orders\n"
-    const rows = chartData.map(d => `${d.date},${d.revenue},${d.orders}`).join("\n")
+    // We map over the activeChartData so the CSV perfectly matches what is on the screen
+    const rows = activeChartData.map(d => `${d.date},${d.revenue},${d.orders}`).join("\n")
     const blob = new Blob([headers + rows], { type: 'text/csv' })
     const url = window.URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -46,14 +42,14 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
         </div>
         
         <div className="flex items-center gap-3">
+          {/* UPDATED DROPDOWN */}
           <select 
             value={timeRange} 
             onChange={(e) => setTimeRange(e.target.value)}
-            className="border border-gray-300 px-3 py-2 text-sm focus:border-foreground focus:outline-none bg-background"
+            className="border border-gray-300 px-3 py-2 text-sm focus:border-foreground focus:outline-none bg-background cursor-pointer"
           >
-            <option value="7d">Last 7 Days</option>
-            <option value="30d">Last 30 Days</option>
-            <option value="1y">This Year</option>
+            <option value="7d">Last 7 Days (Daily)</option>
+            <option value="6m">Past 6 Months (Monthly)</option>
           </select>
           
           <button onClick={downloadCSV} className="flex items-center gap-2 border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 transition-colors">
@@ -72,10 +68,8 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
       {/* The Printable Report Container */}
       <div id="dashboard-report" className="space-y-8 bg-background print:space-y-6">
         
-        {/* KPI Grid (Now Clickable via Links) */}
+        {/* KPI Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:grid-cols-3 print:gap-4">
-          
-          {/* Links to Orders view */}
           <Link href="/admin/orders" className="block border border-gray-200 p-6 rounded-lg shadow-sm hover:border-foreground transition-colors group print:shadow-none print:border-black">
             <div className="flex items-center gap-3 text-gray-500 mb-2 group-hover:text-foreground transition-colors">
               <TrendingUp className="h-5 w-5 print:text-black" />
@@ -84,7 +78,6 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
             <p className="text-3xl font-bold text-foreground print:text-black">₦{initialMetrics.revenue.toLocaleString()}</p>
           </Link>
           
-          {/* Links to Orders view */}
           <Link href="/admin/orders" className="block border border-gray-200 p-6 rounded-lg shadow-sm hover:border-foreground transition-colors group print:shadow-none print:border-black">
             <div className="flex items-center gap-3 text-gray-500 mb-2 group-hover:text-foreground transition-colors">
               <Package className="h-5 w-5 print:text-black" />
@@ -93,7 +86,6 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
             <p className="text-3xl font-bold text-foreground print:text-black">{initialMetrics.ordersCount}</p>
           </Link>
 
-          {/* Links to Products view */}
           <Link href="/admin/products" className="block border border-gray-200 p-6 rounded-lg shadow-sm hover:border-foreground transition-colors group print:shadow-none print:border-black">
             <div className="flex items-center gap-3 text-gray-500 mb-2 group-hover:text-foreground transition-colors">
               <AlertCircle className="h-5 w-5 print:text-black" />
@@ -101,15 +93,20 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
             </div>
             <p className="text-3xl font-bold text-foreground print:text-black">{initialMetrics.productsCount}</p>
           </Link>
-
         </div>
 
         {/* Recharts Analytics Area */}
         <div className="border border-gray-200 p-6 rounded-lg shadow-sm print:shadow-none print:border-black">
-          <h3 className="text-lg font-medium text-foreground mb-6 print:text-black">Revenue Overview</h3>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-medium text-foreground print:text-black">
+              Revenue Overview <span className="text-gray-400 text-sm font-normal ml-2">({timeRange === '7d' ? 'Daily' : 'Monthly'})</span>
+            </h3>
+          </div>
+          
           <div className="h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%" minWidth={100} minHeight={300}>
-              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+              {/* WE FEED THE ACTIVE DATA ARRAY INTO THE CHART HERE */}
+              <AreaChart data={activeChartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#000000" stopOpacity={0.3}/>
@@ -131,7 +128,6 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
 
         {/* Bottom Grid: Low Stock, Best Sellers, & Recent Orders */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 print:grid-cols-3 print:gap-4 print:break-inside-avoid">
-          
           {/* Low Stock Tracker */}
           <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden print:shadow-none print:border-black flex flex-col">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center print:bg-white print:border-black">
@@ -156,7 +152,7 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
             </div>
           </div>
 
-          {/* NEW: Best Sellers */}
+          {/* Best Sellers */}
           <div className="border border-gray-200 rounded-lg shadow-sm overflow-hidden print:shadow-none print:border-black flex flex-col">
             <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-2 print:bg-white print:border-black">
               <Award className="h-4 w-4 text-gray-500 print:text-black" />
