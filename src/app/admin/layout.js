@@ -3,6 +3,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { 
   LayoutDashboard, 
+  BarChart2,
   ShoppingBag, 
   Tags, 
   ShoppingCart, 
@@ -23,6 +24,7 @@ export default async function AdminLayout({ children }) {
 
   const navItems = [
     { name: 'Overview', href: '/admin', icon: LayoutDashboard },
+    { name: 'Analytics', href: '/admin/analytics', icon: BarChart2 },
     { name: 'Products', href: '/admin/products', icon: ShoppingBag },
     { name: 'Collections', href: '/admin/collections', icon: Tags },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
@@ -32,7 +34,7 @@ export default async function AdminLayout({ children }) {
   ]
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 text-left">
       {/* Sidebar */}
       <aside className="w-64 border-r border-gray-200 bg-background flex flex-col">
         <div className="h-16 flex items-center px-6 border-b border-gray-200">

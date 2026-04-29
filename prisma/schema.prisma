@@ -10,12 +10,13 @@ model User {
   id              String   @id @default(uuid())
   name            String?
   email           String   @unique
-  password_hash   String?  // Handled by Supabase Auth
-  auth_provider   String   // Google/Apple/Email
-  role            String   @default("Customer") // Admin, Customer
-  saved_addresses Json?    // JSONB format
+  password_hash   String?  
+  auth_provider   String   
+  role            String   @default("Customer") 
+  saved_addresses Json?    
   created_at      DateTime @default(now())
   orders          Order[]
+  blogs           Blog[]   // ADD THIS LINE
 }
 
 model StoreSettings {
@@ -84,9 +85,10 @@ model Order {
   customer              User        @relation(fields: [customer_id], references: [id])
   total_amount          Float      
   discount_code_id      String?    
-  status                String      @default("Pending")
+  status                String      @default("pending") // pending, processing, shipped, delivered?
   shipping_address      Json       
   squad_transaction_ref String?    
+  created_at            DateTime    @default(now())
   items                 OrderItem[]
 }
 
@@ -114,7 +116,8 @@ model Blog {
   slug               String    @unique
   content            String    // HTML/Markdown
   author_id          String   
+  author             User      @relation(fields: [author_id], references: [id]) // ADD THIS LINE
   featured_image_url String?  
   published_at       DateTime?
-  status             String    @default("Draft")
+  status             String    @default("draft") // Keeping it lowercase for consistency!
 }
