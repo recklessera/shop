@@ -11,14 +11,11 @@ cloudinary.config({
 })
 
 async function uploadToCloudinary(file) {
-  // Bulletproof check: If no file, or if Next.js passes an empty string/blob, skip upload
   if (!file || typeof file === 'string' || file.size === 0 || file.name === 'undefined') {
     return null
   }
-
   const arrayBuffer = await file.arrayBuffer()
   const buffer = Buffer.from(arrayBuffer)
-
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload_stream(
       { folder: 'reckless-era/collections' },
@@ -28,6 +25,29 @@ async function uploadToCloudinary(file) {
       }
     ).end(buffer)
   })
+}
+
+// NEW: You must add this function here too!
+async function deleteFromCloudinary(imageUrl) {
+  if (!imageUrl) return
+  
+  try {
+    const parts = imageUrl.split('/upload/')
+    if (parts.length !== 2) return
+    
+    const pathWithVersion = parts[1]
+    const pathWithoutVersion = pathWithVersion.replace(/^v\d+\//, '')
+    const publicId = pathWithoutVersion.substring(0, pathWithoutVersion.lastIndexOf('.'))
+
+    await new Promise((resolve, reject) => {
+      cloudinary.uploader.destroy(publicId, (error, result) => {
+        if (error) reject(error)
+        else resolve(result)
+      })
+    })
+  } catch (error) {
+    console.error("Failed to delete image from Cloudinary:", error)
+  }
 }
 
 export async function createCollection(formData) {
@@ -63,11 +83,22 @@ export async function createCollection(formData) {
 
 export async function deleteCollection(formData) {
   const id = formData.get('id')
-
   try {
-    await prisma.collection.delete({
-      where: { id },
+    // 1. Fetch the collection to grab the image URLs
+    const collection = await prisma.collection.findUnique({ 
+      where: { id } 
     })
+
+    // 2. Destroy images on Cloudinary if they exist
+    if (collection?.cover_image_url) {
+      await deleteFromCloudinary(collection.cover_image_url)
+    }
+    if (collection?.banner_image_url) {
+      await deleteFromCloudinary(collection.banner_image_url)
+    }
+
+    // 3. Delete from the database
+    await prisma.collection.delete({ where: { id } })
     revalidatePath('/admin/collections')
   } catch (error) {
     throw new Error('Failed to delete collection.')

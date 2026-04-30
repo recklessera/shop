@@ -11,11 +11,16 @@ export default async function AdminDashboard() {
   })
   const revenue = revenueAggregation._sum.total_amount || 0
 
-  const lowStock = await prisma.product.findMany({
+  // Query the Variants table, not the Product table
+  const lowStock = await prisma.productVariant.findMany({
     where: { stock_count: { lte: 5 } },
-    select: { id: true, title: true, stock_count: true, sku: true },
+    include: {
+      product: { 
+        select: { title: true } // Grab the parent product's title so we know what it is
+      }
+    },
     orderBy: { stock_count: 'asc' },
-    take: 5
+    take: 5, // Good practice to limit dashboard widgets so they don't break the UI
   })
 
   const recentOrders = await prisma.order.findMany({

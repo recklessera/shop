@@ -10,6 +10,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
+// FUNCTION 1: Uploading
 async function uploadToCloudinary(file) {
   if (!file || typeof file === 'string' || file.size === 0 || file.name === 'undefined') {
     return null
@@ -25,6 +26,29 @@ async function uploadToCloudinary(file) {
       }
     ).end(buffer)
   })
+}
+
+// FUNCTION 2: Deleting (Separated!)
+async function deleteFromCloudinary(imageUrl) {
+  if (!imageUrl) return
+  
+  try {
+    const parts = imageUrl.split('/upload/')
+    if (parts.length !== 2) return
+    
+    const pathWithVersion = parts[1]
+    const pathWithoutVersion = pathWithVersion.replace(/^v\d+\//, '')
+    const publicId = pathWithoutVersion.substring(0, pathWithoutVersion.lastIndexOf('.'))
+
+    await new Promise((resolve, reject) => {
+      cloudinary.uploader.destroy(publicId, (error, result) => {
+        if (error) reject(error)
+        else resolve(result)
+      })
+    })
+  } catch (error) {
+    console.error("Failed to delete image from Cloudinary:", error)
+  }
 }
 
 export async function createProduct(formData) {
@@ -91,6 +115,19 @@ export async function createProduct(formData) {
 export async function deleteProduct(formData) {
   const id = formData.get('id')
   try {
+    // 1. Fetch the product to get its images BEFORE we delete it
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { images: true }
+    })
+
+    // 2. Destroy all associated images on Cloudinary concurrently
+    if (product && product.images.length > 0) {
+      const deletePromises = product.images.map(img => deleteFromCloudinary(img.image_url))
+      await Promise.all(deletePromises)
+    }
+
+    // 3. Delete from the database (Cascade will automatically drop the variants and image rows)
     await prisma.product.delete({ where: { id } })
     revalidatePath('/admin/products')
   } catch (error) {
