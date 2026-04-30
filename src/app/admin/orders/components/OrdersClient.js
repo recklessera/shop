@@ -2,12 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Eye, Search, Filter, Download, Calendar } from 'lucide-react'
+import { Eye, Search, Filter, Download, Calendar, ShoppingCart } from 'lucide-react'
 
 export default function OrdersClient({ initialOrders }) {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('All')
-  const [dateRange, setDateRange] = useState('all') // NEW: Date range state
+  const [dateRange, setDateRange] = useState('all')
 
   // Real-time filtering logic
   const filteredOrders = initialOrders.filter(order => {
@@ -56,36 +56,41 @@ export default function OrdersClient({ initialOrders }) {
     a.click()
   }
 
+  // Upgraded SaaS Status Colors
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'processing': return 'bg-blue-100 text-blue-800'
-      case 'shipped': return 'bg-purple-100 text-purple-800'
-      case 'delivered': return 'bg-green-100 text-green-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'pending': return 'bg-brand-gold/10 text-brand-gold-hover'
+      case 'processing': return 'bg-brand-pink/10 text-brand-pink'
+      case 'shipped': return 'bg-blue-100 text-blue-700'
+      case 'delivered': return 'bg-green-100 text-green-700'
+      case 'cancelled': return 'bg-brand-red/10 text-brand-red'
+      default: return 'bg-gray-100 text-gray-700'
     }
   }
 
   return (
     <div className="max-w-7xl mx-auto w-full text-left">
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-        <h2 className="text-2xl font-bold text-foreground">Orders</h2>
+      
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Orders Ledger</h1>
+          <p className="text-sm font-medium text-gray-500 mt-2">Manage customer transactions, fulfillments, and financial history.</p>
+        </div>
         
         <button 
           onClick={downloadCSV}
-          className="flex items-center gap-2 border border-gray-300 px-4 py-2 text-sm hover:bg-gray-50 transition-colors bg-white font-medium shadow-sm rounded-md"
+          className="flex items-center gap-2 bg-brand-gold text-white rounded-xl px-5 py-2.5 text-sm font-bold hover:bg-brand-gold-hover transition-all shadow-md shadow-brand-gold/20"
         >
           <Download className="h-4 w-4" /> Export CSV
         </button>
       </div>
 
       {/* Filter & Search Toolbar */}
-      <div className="bg-white p-4 border border-gray-200 rounded-lg shadow-sm mb-6 flex flex-col md:flex-row gap-4">
+      <div className="bg-white p-5 border border-gray-100 rounded-2xl shadow-sm mb-8 flex flex-col lg:flex-row gap-5">
         
         {/* Search Bar */}
         <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <Search className="h-4 w-4 text-gray-400" />
           </div>
           <input
@@ -93,20 +98,20 @@ export default function OrdersClient({ initialOrders }) {
             placeholder="Search by Order ID, Name, or Email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none"
+            className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition-all bg-gray-50/50 hover:bg-gray-50 focus:bg-white"
           />
         </div>
 
-        <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-          {/* NEW: Date Range Filter */}
-          <div className="relative w-full sm:w-48">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+          {/* Date Range Filter */}
+          <div className="relative w-full sm:w-56">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Calendar className="h-4 w-4 text-gray-400" />
             </div>
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value)}
-              className="block w-full pl-10 pr-8 py-2 border border-gray-300 rounded-md text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none appearance-none bg-white"
+              className="block w-full pl-11 pr-8 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none appearance-none bg-gray-50/50 hover:bg-gray-50 focus:bg-white transition-all cursor-pointer"
             >
               <option value="all">All-Time</option>
               <option value="7d">Last 7 Days</option>
@@ -118,13 +123,13 @@ export default function OrdersClient({ initialOrders }) {
 
           {/* Status Filter Dropdown */}
           <div className="relative w-full sm:w-48">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
               <Filter className="h-4 w-4 text-gray-400" />
             </div>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="block w-full pl-10 pr-8 py-2 border border-gray-300 rounded-md text-sm focus:border-foreground focus:ring-1 focus:ring-foreground outline-none appearance-none bg-white"
+              className="block w-full pl-11 pr-8 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none appearance-none bg-gray-50/50 hover:bg-gray-50 focus:bg-white transition-all cursor-pointer"
             >
               <option value="All">All Statuses</option>
               <option value="pending">Pending</option>
@@ -138,50 +143,64 @@ export default function OrdersClient({ initialOrders }) {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-background border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
+          <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+            <ShoppingCart className="h-4 w-4 text-brand-pink" />
+            Transaction History
+          </h3>
+        </div>
+        
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-50">
+            <thead className="bg-gray-50/50">
               <tr>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
-                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th scope="col" className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Order ID</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Customer</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Total</th>
+                <th scope="col" className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                <th scope="col" className="relative px-6 py-4"><span className="sr-only">Actions</span></th>
               </tr>
             </thead>
-            <tbody className="bg-background divide-y divide-gray-200">
+            <tbody className="bg-white divide-y divide-gray-50">
               {filteredOrders.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-sm text-gray-500">
-                    {initialOrders.length === 0 ? "No orders found." : "No orders match your search criteria."}
+                  <td colSpan="6" className="px-6 py-12 text-center">
+                    <p className="text-sm font-medium text-gray-500">
+                      {initialOrders.length === 0 ? "No orders found." : "No orders match your search criteria."}
+                    </p>
                   </td>
                 </tr>
               ) : (
                 filteredOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-foreground">
-                      #{order.id.slice(0, 8).toUpperCase()}...
+                  <tr key={order.id} className="hover:bg-gray-50 transition-colors group">
+                    <td className="px-6 py-5 whitespace-nowrap text-sm font-extrabold font-mono text-gray-900 tracking-wider">
+                      <span className="text-gray-400">#</span>{order.id.slice(0, 8).toUpperCase()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="px-6 py-5 whitespace-nowrap text-sm font-medium text-gray-500">
                       {new Date(order.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-foreground">
-                      <div className="font-medium">{order.customer?.name || 'Unknown'}</div>
-                      <div className="text-xs text-gray-500">{order.customer?.email}</div>
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <div className="text-sm font-bold text-gray-900 group-hover:text-brand-pink transition-colors">{order.customer?.name || 'Unknown'}</div>
+                      <div className="text-xs font-medium text-gray-500 mt-0.5">{order.customer?.email}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-medium">
-                      ₦{order.total_amount.toLocaleString()} <span className="text-xs font-normal">({order._count.items} items)</span>
+                    <td className="px-6 py-5 whitespace-nowrap">
+                      <div className="text-sm font-extrabold text-gray-900">₦{order.total_amount.toLocaleString()}</div>
+                      <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-0.5">{order._count.items} items</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full capitalize ${getStatusColor(order.status)}`}>
+                    <td className="px-6 py-5 whitespace-nowrap text-sm">
+                      <span className={`px-3 py-1 inline-flex text-[10px] uppercase tracking-wider font-bold rounded-full ${getStatusColor(order.status)}`}>
                         {order.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <Link href={`/admin/orders/${order.id}`} className="text-foreground hover:opacity-70 transition-opacity inline-flex items-center gap-1">
-                        <Eye className="h-4 w-4" /> View
+                    <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium">
+                      <Link 
+                        href={`/admin/orders/${order.id}`} 
+                        className="inline-flex items-center gap-1.5 p-2 rounded-lg text-gray-400 hover:text-brand-pink hover:bg-brand-pink/10 transition-colors"
+                      >
+                        <Eye className="h-4 w-4" /> 
+                        <span className="font-bold">View</span>
                       </Link>
                     </td>
                   </tr>

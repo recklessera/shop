@@ -54,24 +54,28 @@ export default function BlogClient({ blogs }) {
 
   return (
     <div className="max-w-7xl mx-auto w-full text-left">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-2xl font-bold text-foreground">Editorial Blog</h2>
+      <div className="mb-8 flex flex-col gap-1">
+        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Editorial Blog</h1>
+        <p className="text-sm font-medium text-gray-500">Publish lookbook stories, campaign lore, and brand announcements.</p>
       </div>
 
       <div className="flex flex-col gap-8">
         
         {/* Top Section: The Editor */}
         <div className="w-full">
-          <div className="bg-background border border-gray-200 p-6 rounded-lg shadow-sm">
-            <h3 className="text-lg font-medium text-foreground mb-6 flex items-center gap-2">
-              <FileText className="h-5 w-5" /> Write New Article
+          <div className="bg-white border border-gray-100 p-6 md:p-8 rounded-2xl shadow-sm">
+            <h3 className="text-xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+              <div className="p-2 bg-brand-pink/10 rounded-lg">
+                <FileText className="h-5 w-5 text-brand-pink" />
+              </div>
+              Write New Article
             </h3>
             
             <form onSubmit={handleSubmit} className="space-y-6">
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">Article Title *</label>
+                  <label htmlFor="title" className="block text-sm font-bold text-gray-700 mb-2">Article Title <span className="text-brand-red">*</span></label>
                   <input 
                     type="text" 
                     id="title"
@@ -80,11 +84,11 @@ export default function BlogClient({ blogs }) {
                     value={title}
                     onChange={handleTitleChange}
                     placeholder="e.g. The Summer Lookbook"
-                    className="block w-full border border-gray-300 px-3 py-2 text-sm focus:border-foreground focus:outline-none" 
+                    className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all" 
                   />
                 </div>
                 <div>
-                  <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-1">URL Slug *</label>
+                  <label htmlFor="slug" className="block text-sm font-bold text-gray-700 mb-2">URL Slug <span className="text-brand-red">*</span></label>
                   <input 
                     type="text" 
                     id="slug"
@@ -93,63 +97,69 @@ export default function BlogClient({ blogs }) {
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
                     placeholder="e.g. the-summer-lookbook"
-                    className="block w-full border border-gray-300 px-3 py-2 text-sm focus:border-foreground focus:outline-none bg-gray-50" 
+                    className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none bg-gray-50 transition-all" 
                   />
                 </div>
               </div>
 
               {/* Native Image Upload & Preview */}
               <div>
-                <label htmlFor="featured_image" className="block text-sm font-medium text-gray-700 mb-1">Featured Cover Image</label>
+                <label htmlFor="featured_image" className="block text-sm font-bold text-gray-700 mb-2">Featured Cover Image</label>
                 <input 
                   type="file" 
                   id="featured_image"
                   name="image"
                   accept="image/*" 
                   onChange={handleImageChange}
-                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:border-0 file:text-sm file:font-semibold file:bg-gray-50 file:text-foreground hover:file:bg-gray-100 border border-gray-300 mb-4" 
+                  className="block w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:border-0 file:text-sm file:font-bold file:bg-gray-50 file:text-brand-pink hover:file:bg-brand-pink/10 border border-gray-200 rounded-xl mb-4 transition-all" 
                 />
                 
                 {imagePreview && (
-                  <div className="relative cursor-pointer border-2 border-transparent group w-full max-w-md aspect-video bg-gray-50">
-                    <img src={imagePreview} alt="preview" className="h-full w-full object-cover rounded" />
+                  <div className="relative cursor-pointer border border-gray-100 group w-full max-w-md aspect-video bg-gray-50 rounded-xl shadow-sm overflow-hidden">
+                    <img src={imagePreview} alt="preview" className="h-full w-full object-cover" />
                     <button 
                       type="button" 
                       onClick={(e) => { e.stopPropagation(); removeImage(); }}
-                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                      className="absolute top-3 right-3 bg-white/90 hover:bg-brand-red text-gray-700 hover:text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm"
                       title="Remove image"
                     >
-                      ✕
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 )}
               </div>
 
               <div>
-                <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">Article Content (HTML / Markdown supported) *</label>
+                <label htmlFor="content" className="block text-sm font-bold text-gray-700 mb-2">Article Content (HTML / Markdown supported) <span className="text-brand-red">*</span></label>
                 <textarea 
                   id="content"
                   name="content" 
                   required
                   rows="12" 
                   placeholder="Start writing..."
-                  className="block w-full border border-gray-300 px-4 py-3 text-sm focus:border-foreground focus:outline-none" 
+                  className="block w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all resize-none" 
                 />
               </div>
 
               <div className="flex items-center pt-2">
-                <input type="checkbox" id="is_published" name="is_published" className="h-4 w-4 border-gray-300 rounded text-foreground focus:ring-foreground" defaultChecked />
-                <label htmlFor="is_published" className="ml-2 block text-sm text-gray-900 font-medium">Publish immediately</label>
+                <input 
+                  type="checkbox" 
+                  id="is_published" 
+                  name="is_published" 
+                  className="h-4 w-4 border-gray-300 rounded text-brand-pink focus:ring-brand-pink transition-all" 
+                  defaultChecked 
+                />
+                <label htmlFor="is_published" className="ml-3 block text-sm text-gray-900 font-bold">Publish immediately</label>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <div className="pt-6 border-t border-gray-100 flex justify-end">
                 <button 
                   type="submit" 
                   disabled={isSubmitting}
-                  className="bg-foreground text-background px-8 py-2 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center gap-2"
+                  className="bg-brand-gold text-white rounded-xl px-8 py-3 text-sm font-bold hover:bg-brand-gold-hover transition-all shadow-md shadow-brand-gold/20 flex items-center gap-2 disabled:opacity-50"
                 >
                   <Plus className="h-4 w-4" />
-                  {isSubmitting ? 'Saving...' : 'Save Post'}
+                  {isSubmitting ? 'Saving Post...' : 'Save Post'}
                 </button>
               </div>
             </form>
@@ -158,69 +168,77 @@ export default function BlogClient({ blogs }) {
 
         {/* Bottom Section: Published Ledger */}
         <div className="w-full">
-          <div className="bg-background border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center bg-white">
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                <FileText className="h-4 w-4 text-brand-pink" />
+                Published Articles
+              </h3>
+            </div>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-50">
+                <thead className="bg-gray-50/50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Article</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Author</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status & Date</th>
-                    <th className="relative px-6 py-3"><span className="sr-only">Actions</span></th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Article</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Author</th>
+                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status & Date</th>
+                    <th className="relative px-6 py-4"><span className="sr-only">Actions</span></th>
                   </tr>
                 </thead>
-                <tbody className="bg-background divide-y divide-gray-200">
+                <tbody className="bg-white divide-y divide-gray-50">
                   {blogs.length === 0 ? (
                     <tr>
-                      <td colSpan="4" className="px-6 py-8 text-center text-sm text-gray-500">No blog posts written yet.</td>
+                      <td colSpan="4" className="px-6 py-12 text-center text-sm font-medium text-gray-500">No blog posts written yet.</td>
                     </tr>
                   ) : (
                     blogs.map((blog) => (
-                      <tr key={blog.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-6 py-4">
+                      <tr key={blog.id} className="hover:bg-gray-50 transition-colors group">
+                        <td className="px-6 py-5">
                           <div className="flex items-center gap-4">
                             {blog.featured_image_url ? (
-                              <img src={blog.featured_image_url} alt={blog.title} className="h-12 w-16 object-cover rounded border border-gray-200" />
+                              <img src={blog.featured_image_url} alt={blog.title} className="h-12 w-16 object-cover rounded-lg border border-gray-100 shadow-sm" />
                             ) : (
-                              <div className="h-12 w-16 bg-gray-100 rounded border border-gray-200 flex items-center justify-center">
+                              <div className="h-12 w-16 bg-gray-50 rounded-lg border border-gray-100 flex items-center justify-center">
                                 <FileText className="h-4 w-4 text-gray-400" />
                               </div>
                             )}
                             <div>
-                              <p className="text-sm font-medium text-foreground line-clamp-1">{blog.title}</p>
-                              <p className="text-xs text-gray-500">/{blog.slug}</p>
+                              <p className="text-sm font-bold text-gray-900 group-hover:text-brand-pink transition-colors line-clamp-1">{blog.title}</p>
+                              <p className="text-xs font-medium text-gray-500 mt-0.5">/{blog.slug}</p>
                             </div>
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-6 py-5 whitespace-nowrap">
                           <div className="flex items-center gap-2">
-                            <User className="h-4 w-4 text-gray-400" />
-                            <span className="text-sm text-gray-700">{blog.author?.name || blog.author?.email || 'Admin'}</span>
+                            <div className="p-1.5 bg-gray-100 rounded-md">
+                              <User className="h-3 w-3 text-gray-600" />
+                            </div>
+                            <span className="text-sm font-bold text-gray-700">{blog.author?.name || blog.author?.email || 'Admin'}</span>
                           </div>
                         </td>
                         
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="flex items-center gap-2 mb-1">
+                        <td className="px-6 py-5 whitespace-nowrap">
+                          <div className="flex items-center gap-2 mb-1.5">
                             {blog.status === 'published' ? (
-                              <span className="px-2 py-0.5 text-[10px] uppercase font-bold rounded bg-green-100 text-green-800 tracking-wider">Live</span>
+                              <span className="px-3 py-1 text-[10px] uppercase font-bold rounded-full bg-brand-pink/10 text-brand-pink tracking-wider">Live</span>
                             ) : (
-                              <span className="px-2 py-0.5 text-[10px] uppercase font-bold rounded bg-yellow-100 text-yellow-800 tracking-wider">Draft</span>
+                              <span className="px-3 py-1 text-[10px] uppercase font-bold rounded-full bg-gray-100 text-gray-600 tracking-wider">Draft</span>
                             )}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-xs font-medium text-gray-500 pl-1">
                             {blog.published_at 
                               ? new Date(blog.published_at).toLocaleDateString() 
                               : 'Not published'}
                           </div>
                         </td>
 
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-3 items-center pt-6">
+                        <td className="px-6 py-5 whitespace-nowrap text-right text-sm font-medium flex justify-end gap-2 items-center pt-7">
                           {/* Toggle Status Form */}
                           <form action={toggleBlogStatus}>
                             <input type="hidden" name="id" value={blog.id} />
                             <input type="hidden" name="status" value={blog.status} />
-                            <button type="submit" title={blog.status === 'published' ? "Unpublish to Draft" : "Publish to Live"} className={`${blog.status === 'published' ? 'text-green-600 hover:text-green-800' : 'text-gray-400 hover:text-gray-600'} transition-colors`}>
+                            <button type="submit" title={blog.status === 'published' ? "Unpublish to Draft" : "Publish to Live"} className={`p-2 rounded-lg transition-colors ${blog.status === 'published' ? 'text-brand-pink hover:bg-brand-pink/10' : 'text-gray-400 hover:bg-gray-100 hover:text-gray-900'}`}>
                               {blog.status === 'published' ? <Globe className="h-4 w-4" /> : <GlobeLock className="h-4 w-4" />}
                             </button>
                           </form>
@@ -228,7 +246,7 @@ export default function BlogClient({ blogs }) {
                           {/* Delete Form */}
                           <form action={deleteBlog}>
                             <input type="hidden" name="id" value={blog.id} />
-                            <button type="submit" className="text-red-500 hover:text-red-700 transition-colors" title="Delete Post">
+                            <button type="submit" className="p-2 text-gray-400 hover:text-brand-red hover:bg-brand-red/10 rounded-lg transition-colors" title="Delete Post">
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </form>

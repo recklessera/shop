@@ -73,3 +73,43 @@ export async function deleteCollection(formData) {
     throw new Error('Failed to delete collection.')
   }
 }
+
+export async function updateCollection(formData) {
+  const id = formData.get('id')
+  const title = formData.get('title')
+  const description = formData.get('description')
+  const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
+
+  const coverImageFile = formData.get('cover_image')
+  const bannerImageFile = formData.get('banner_image')
+
+  try {
+    const updateData = {
+      title,
+      slug,
+      description,
+    }
+
+    // Only upload and update if a new file was actually selected
+    if (coverImageFile && coverImageFile.size > 0) {
+      const coverUrl = await uploadToCloudinary(coverImageFile)
+      if (coverUrl) updateData.cover_image_url = coverUrl
+    }
+
+    if (bannerImageFile && bannerImageFile.size > 0) {
+      const bannerUrl = await uploadToCloudinary(bannerImageFile)
+      if (bannerUrl) updateData.banner_image_url = bannerUrl
+    }
+
+    await prisma.collection.update({
+      where: { id },
+      data: updateData
+    })
+
+    revalidatePath('/admin/collections')
+    revalidatePath(`/admin/collections/${id}`)
+  } catch (error) {
+    console.error("RAW ERROR:", error)
+    throw new Error(`Collection Update Failed: ${error.message || JSON.stringify(error)}`)
+  }
+}

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { updateOrderStatus } from '../../actions'
+import { RefreshCw } from 'lucide-react'
 
 export default function OrderStatusForm({ orderId, currentStatus }) {
   const [status, setStatus] = useState(currentStatus)
@@ -17,8 +18,6 @@ export default function OrderStatusForm({ orderId, currentStatus }) {
 
     try {
       await updateOrderStatus(formData)
-      // We don't need a success alert here because the Server Action revalidates the path, 
-      // which will instantly visually update the page in the background!
     } catch (error) {
       alert(error.message)
     } finally {
@@ -27,14 +26,14 @@ export default function OrderStatusForm({ orderId, currentStatus }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
-      <label htmlFor="status" className="text-sm font-medium text-gray-700">Update Fulfillment Status</label>
+    <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-3">
+      <label htmlFor="status" className="text-xs font-bold text-gray-500 uppercase tracking-wider">Update Fulfillment</label>
       <div className="flex items-center gap-3">
         <select
           id="status"
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="flex-1 border border-gray-300 px-3 py-2 text-sm focus:border-foreground focus:outline-none bg-white"
+          className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none bg-white transition-all cursor-pointer"
         >
           <option value="pending">Pending</option>
           <option value="processing">Processing</option>
@@ -45,9 +44,9 @@ export default function OrderStatusForm({ orderId, currentStatus }) {
         <button 
           type="submit" 
           disabled={isUpdating || status === currentStatus}
-          className="bg-foreground text-background px-4 py-2 text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="bg-brand-gold text-white rounded-xl px-5 py-2.5 text-sm font-bold hover:bg-brand-gold-hover transition-all shadow-md shadow-brand-gold/20 disabled:opacity-50 flex items-center gap-2"
         >
-          {isUpdating ? 'Saving...' : 'Update'}
+          {isUpdating ? <RefreshCw className="h-4 w-4 animate-spin" /> : 'Update'}
         </button>
       </div>
     </form>

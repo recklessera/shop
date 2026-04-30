@@ -1,13 +1,13 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Package, User, MapPin, CreditCard } from 'lucide-react'
+import { ArrowLeft, Package, User, MapPin, CreditCard, Clock } from 'lucide-react'
 import OrderStatusForm from './components/OrderStatusForm'
 
 export default async function OrderDetailPage({ params }) {
   const { id } = await params
 
-  // Deeply fetch the order, customer, items, and the primary product image for each item
+  // Deeply fetch the order, customer, items, variants, and images
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
@@ -18,7 +18,8 @@ export default async function OrderDetailPage({ params }) {
             include: {
               images: { where: { is_primary: true }, take: 1 }
             }
-          }
+          },
+          variant: true // NEW: Fetch the variant so we can show its SKU
         }
       }
     }
@@ -28,7 +29,7 @@ export default async function OrderDetailPage({ params }) {
     notFound()
   }
 
-  // Parse the JSON address (safely handling if it is null or a string)
+  // Parse the JSON address
   let address = {}
   try {
     address = typeof order.shipping_address === 'string' 
@@ -38,34 +39,38 @@ export default async function OrderDetailPage({ params }) {
     address = {}
   }
 
+  // Upgraded SaaS Status Colors
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'pending': return 'bg-yellow-100 text-yellow-800'
-      case 'processing': return 'bg-blue-100 text-blue-800'
-      case 'shipped': return 'bg-purple-100 text-purple-800'
-      case 'delivered': return 'bg-green-100 text-green-800'
-      case 'cancelled': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+      case 'pending': return 'bg-brand-gold/10 text-brand-gold-hover'
+      case 'processing': return 'bg-brand-pink/10 text-brand-pink'
+      case 'shipped': return 'bg-blue-100 text-blue-700'
+      case 'delivered': return 'bg-green-100 text-green-700'
+      case 'cancelled': return 'bg-brand-red/10 text-brand-red'
+      default: return 'bg-gray-100 text-gray-700'
     }
   }
 
   return (
-    <div className="max-w-6xl text-left">
+    <div className="max-w-6xl mx-auto text-left w-full">
+      
       <div className="mb-6">
-        <Link href="/admin/orders" className="text-sm text-gray-500 hover:text-foreground flex items-center gap-2 transition-colors inline-flex">
+        <Link href="/admin/orders" className="text-sm font-bold text-gray-500 hover:text-brand-pink flex items-center gap-2 transition-colors inline-flex px-3 py-2 -ml-3 rounded-lg hover:bg-brand-pink/5">
           <ArrowLeft className="h-4 w-4" /> Back to Orders
         </Link>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-3">
-            Order #{order.id.slice(0, 8).toUpperCase()}
-            <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(order.status)}`}>
-              {order.status.toUpperCase()}
+          <h2 className="text-3xl font-bold text-gray-900 tracking-tight flex items-center gap-4">
+            <span className="font-mono tracking-wider"><span className="text-gray-400">#</span>{order.id.slice(0, 8).toUpperCase()}</span>
+            <span className={`px-3 py-1 inline-flex text-[11px] uppercase tracking-wider font-extrabold rounded-full ${getStatusColor(order.status)}`}>
+              {order.status}
             </span>
           </h2>
-          <p className="text-sm text-gray-500 mt-1">Placed on {new Date(order.created_at).toLocaleString()}</p>
+          <p className="text-sm font-medium text-gray-500 mt-2 flex items-center gap-1.5">
+            <Clock className="h-4 w-4" /> Placed on {new Date(order.created_at).toLocaleString()}
+          </p>
         </div>
       </div>
 
@@ -73,57 +78,72 @@ export default async function OrderDetailPage({ params }) {
         
         {/* Left Column: Line Items */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-background border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-            <div className="bg-gray-50 px-6 py-4 border-b border-gray-200 flex items-center gap-2">
-              <Package className="h-5 w-5 text-gray-500" />
-              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Line Items</h3>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+            <div className="px-6 py-5 border-b border-gray-100 flex items-center gap-3 bg-white">
+              <div className="p-2 bg-gray-100 rounded-lg">
+                <Package className="h-5 w-5 text-gray-600" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Line Items</h3>
             </div>
             
-            <div className="divide-y divide-gray-200">
+            <div className="divide-y divide-gray-50">
               {order.items.map((item) => (
-                <div key={item.id} className="p-6 flex items-center gap-6 hover:bg-gray-50 transition-colors">
+                <div key={item.id} className="p-6 flex items-center gap-6 hover:bg-gray-50 transition-colors group">
                   {/* Thumbnail */}
-                  <div className="h-16 w-16 flex-shrink-0 border border-gray-200 rounded-md overflow-hidden bg-gray-100">
+                  <div className="h-16 w-16 flex-shrink-0 border border-gray-100 rounded-xl overflow-hidden bg-gray-50 shadow-sm">
                     {item.product.images[0]?.image_url ? (
-                      <img src={item.product.images[0].image_url} alt={item.product.title} className="h-full w-full object-cover" />
+                      <img src={item.product.images[0].image_url} alt={item.product.title} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center text-xs text-gray-400">No Img</div>
+                      <div className="h-full w-full flex items-center justify-center text-[10px] font-bold text-gray-400 uppercase">No Img</div>
                     )}
                   </div>
                   
                   {/* Details */}
-                  <div className="flex-1">
-                    <h4 className="text-sm font-medium text-foreground">{item.product.title}</h4>
-                    <p className="text-xs text-gray-500 mt-1">SKU: {item.product.sku}</p>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-gray-900 group-hover:text-brand-pink transition-colors truncate pr-4">
+                      {item.product.title}
+                    </h4>
+                    
+                    {/* NEW: Render the Variant Snapshot if it exists so the packer knows what size/color to grab */}
+                    {item.variant_snapshot && (
+                      <p className="text-xs font-bold text-brand-pink mt-1 bg-brand-pink/5 inline-block px-2 py-0.5 rounded">
+                        {item.variant_snapshot}
+                      </p>
+                    )}
+                    
+                    {/* NEW: Use the Variant SKU, or a fallback if the variant was deleted from the DB */}
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1.5">
+                      SKU: {item.variant?.sku || 'N/A'}
+                    </p>
                   </div>
                   
                   {/* Price & Qty */}
                   <div className="text-right">
-                    <p className="text-sm font-medium text-foreground">₦{item.price_at_purchase.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500 mt-1">Qty: {item.quantity}</p>
+                    <p className="text-sm font-bold text-gray-900">₦{item.price_at_purchase.toLocaleString()}</p>
+                    <p className="text-xs font-bold text-gray-400 mt-1 uppercase tracking-wider">Qty: {item.quantity}</p>
                   </div>
                   
                   {/* Total Line Price */}
-                  <div className="text-right w-24">
-                    <p className="text-sm font-bold text-foreground">₦{(item.price_at_purchase * item.quantity).toLocaleString()}</p>
+                  <div className="text-right w-28">
+                    <p className="text-base font-extrabold text-gray-900">₦{(item.price_at_purchase * item.quantity).toLocaleString()}</p>
                   </div>
                 </div>
               ))}
             </div>
             
             {/* Financial Summary Footer */}
-            <div className="bg-gray-50 px-6 py-6 border-t border-gray-200">
-              <div className="flex justify-between items-center text-sm mb-2 text-gray-500">
+            <div className="bg-gray-50/50 px-6 py-6 border-t border-gray-100">
+              <div className="flex justify-between items-center text-sm mb-3 font-medium text-gray-500">
                 <span>Subtotal</span>
-                <span>₦{order.total_amount.toLocaleString()}</span>
+                <span className="text-gray-900 font-bold">₦{order.total_amount.toLocaleString()}</span>
               </div>
-              <div className="flex justify-between items-center text-sm mb-2 text-gray-500">
+              <div className="flex justify-between items-center text-sm mb-4 font-medium text-gray-500">
                 <span>Shipping</span>
-                <span>Calculated at checkout</span>
+                <span className="italic text-gray-400">Calculated at checkout</span>
               </div>
-              <div className="flex justify-between items-center text-lg font-bold text-foreground mt-4 pt-4 border-t border-gray-200">
+              <div className="flex justify-between items-center text-lg font-black text-gray-900 pt-4 border-t border-gray-200">
                 <span>Total</span>
-                <span>₦{order.total_amount.toLocaleString()}</span>
+                <span className="text-brand-pink">₦{order.total_amount.toLocaleString()}</span>
               </div>
             </div>
           </div>
@@ -133,63 +153,77 @@ export default async function OrderDetailPage({ params }) {
         <div className="lg:col-span-1 space-y-6">
           
           {/* Status Control Box */}
-          <div className="bg-background border border-gray-200 rounded-lg shadow-sm p-6">
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider mb-4">Fulfillment</h3>
-            <div className="bg-gray-50 p-4 border border-gray-200 rounded text-sm text-gray-700">
-              Current Status: <span className="font-bold">{order.status}</span>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 md:p-8">
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider mb-5">Order Management</h3>
+            <div className="bg-gray-50 p-4 border border-gray-100 rounded-xl text-sm text-gray-700 flex justify-between items-center">
+              <span className="font-medium text-gray-500">Current Status</span>
+              <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${getStatusColor(order.status)}`}>{order.status}</span>
             </div>
             <OrderStatusForm orderId={order.id} currentStatus={order.status} />
           </div>
 
           {/* Customer Info Box */}
-          <div className="bg-background border border-gray-200 rounded-lg shadow-sm p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <User className="h-5 w-5 text-gray-500" />
-              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Customer</h3>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-brand-pink/10 rounded-lg">
+                <User className="h-5 w-5 text-brand-pink" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Customer</h3>
             </div>
-            <div className="text-sm text-gray-700 space-y-2">
-              <p className="font-medium text-foreground">{order.customer?.name || 'Guest User'}</p>
-              <p><a href={`mailto:${order.customer?.email}`} className="text-blue-600 hover:underline">{order.customer?.email}</a></p>
-              <p className="text-gray-500 text-xs mt-2">Account Type: {order.customer?.role}</p>
+            <div className="text-sm text-gray-900 space-y-1.5">
+              <p className="font-extrabold text-base">{order.customer?.name || 'Guest User'}</p>
+              <p><a href={`mailto:${order.customer?.email}`} className="text-brand-pink hover:underline font-medium">{order.customer?.email}</a></p>
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Account Tier</span>
+                <p className="text-sm font-bold text-gray-700 mt-0.5 capitalize">{order.customer?.role}</p>
+              </div>
             </div>
           </div>
 
           {/* Shipping Address Box */}
-          <div className="bg-background border border-gray-200 rounded-lg shadow-sm p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin className="h-5 w-5 text-gray-500" />
-              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Shipping Address</h3>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-brand-gold/10 rounded-lg">
+                <MapPin className="h-5 w-5 text-brand-gold-hover" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Shipping Address</h3>
             </div>
-            <div className="text-sm text-gray-700 leading-relaxed">
+            <div className="text-sm text-gray-700 leading-relaxed font-medium space-y-1">
               {Object.keys(address).length === 0 ? (
-                <p className="text-red-500 italic">No valid shipping address provided.</p>
+                <p className="text-brand-red italic bg-brand-red/10 p-3 rounded-lg text-center font-bold">No valid shipping address provided.</p>
               ) : (
                 <>
-                  <p>{address.firstName} {address.lastName}</p>
+                  <p className="font-extrabold text-gray-900">{address.firstName} {address.lastName}</p>
                   <p>{address.street}</p>
-                  <p>{address.apartment && `${address.apartment}`}</p>
+                  {address.apartment && <p>{address.apartment}</p>}
                   <p>{address.city}, {address.state} {address.postalCode}</p>
-                  <p>{address.country}</p>
-                  {address.phone && <p className="mt-2 text-gray-500">Tel: {address.phone}</p>}
+                  <p className="font-bold">{address.country}</p>
+                  {address.phone && <p className="mt-3 pt-3 border-t border-gray-100 text-gray-500">Tel: <span className="font-bold text-gray-900">{address.phone}</span></p>}
                 </>
               )}
             </div>
           </div>
 
           {/* Payment Info Box */}
-          <div className="bg-background border border-gray-200 rounded-lg shadow-sm p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <CreditCard className="h-5 w-5 text-gray-500" />
-              <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Payment Gate</h3>
+          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 md:p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2 bg-green-100 rounded-lg">
+                <CreditCard className="h-5 w-5 text-green-700" />
+              </div>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Payment Gate</h3>
             </div>
             <div className="text-sm text-gray-700">
               {order.squad_transaction_ref ? (
-                <p className="flex flex-col gap-1">
-                  <span className="text-xs text-gray-500">Squad Ref:</span>
-                  <span className="font-mono bg-gray-100 p-1 rounded text-xs break-all border border-gray-200">{order.squad_transaction_ref}</span>
-                </p>
+                <div className="flex flex-col gap-2">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Squad Ref</span>
+                  <span className="font-mono bg-gray-50 p-2 rounded-lg text-xs break-all border border-gray-200 font-bold text-gray-900 tracking-wider">
+                    {order.squad_transaction_ref}
+                  </span>
+                </div>
               ) : (
-                <p className="text-gray-500 italic">Manual / Cash on Delivery</p>
+                <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-center">
+                  <p className="text-gray-500 font-bold italic text-xs">Manual / Cash on Delivery</p>
+                </div>
               )}
             </div>
           </div>

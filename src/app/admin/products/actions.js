@@ -30,52 +30,57 @@ async function uploadToCloudinary(file) {
 export async function createProduct(formData) {
   const title = formData.get('title')
   const description = formData.get('description')
-  const sku = formData.get('sku')
   const price = parseFloat(formData.get('price')) 
-  const stock_count = parseInt(formData.get('stock_count'), 10)
   const collection_id = formData.get('collection_id')
   const is_published = formData.get('is_published') === 'on' 
   
-  // Extract the array of files and the primary index flag
+  const variantsString = formData.get('variants')
+  let parsedVariants = []
+  if (variantsString) {
+    parsedVariants = JSON.parse(variantsString)
+  }
+
+  // NEW: Added the price field parsing here
+  const variantsData = parsedVariants.map(v => ({
+    sku: v.sku,
+    size: v.size || null,
+    color: v.color || null,
+    stock_count: parseInt(v.stock_count, 10) || 0,
+    price: (v.price && v.price !== '') ? parseFloat(v.price) : null
+  }))
+
   const imageFiles = formData.getAll('images')
   const primaryIndex = parseInt(formData.get('primaryIndex'), 10) || 0
-  
   const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '')
 
   try {
-    // Upload all images to Cloudinary concurrently
     const uploadPromises = imageFiles.map(file => uploadToCloudinary(file))
     const imageUrls = await Promise.all(uploadPromises)
-    
-    // Filter out any failed uploads
     const validImages = imageUrls.filter(url => url !== null)
 
     const productData = {
       title,
       slug,
-      sku,
       description,
       price,
-      stock_count,
       collection_id,
       is_published,
+      variants: {
+        create: variantsData
+      }
     }
 
-    // Map the returned URLs to your ProductImage schema
     if (validImages.length > 0) {
       productData.images = {
         create: validImages.map((url, index) => ({
           image_url: url,
           alt_text: title,
-          is_primary: index === primaryIndex // Set true for the selected cover image
+          is_primary: index === primaryIndex
         }))
       }
     }
 
-    await prisma.product.create({
-      data: productData,
-    })
-    
+    await prisma.product.create({ data: productData })
     revalidatePath('/admin/products')
   } catch (error) {
     console.error("RAW ERROR:", error)
@@ -84,7 +89,6 @@ export async function createProduct(formData) {
 }
 
 export async function deleteProduct(formData) {
-  // Same as before
   const id = formData.get('id')
   try {
     await prisma.product.delete({ where: { id } })
@@ -98,9 +102,7 @@ export async function updateProduct(formData) {
   const id = formData.get('id')
   const title = formData.get('title')
   const description = formData.get('description')
-  const sku = formData.get('sku')
   const price = parseFloat(formData.get('price')) 
-  const stock_count = parseInt(formData.get('stock_count'), 10)
   const collection_id = formData.get('collection_id')
   const is_published = formData.get('is_published') === 'on' 
 
@@ -109,19 +111,39 @@ export async function updateProduct(formData) {
   try {
     await prisma.product.update({
       where: { id },
-      data: {
-        title,
-        slug,
-        sku,
-        description,
-        price,
-        stock_count,
-        collection_id,
-        is_published,
-      },
+      data: { title, slug, description, price, collection_id, is_published },
     })
     
-    // Refresh both the main list and this specific product's page
+    const variantsString = formData.get('variants')
+    if (variantsString) {
+      const parsedVariants = JSON.parse(variantsString)
+      
+      for (const v of parsedVariants) {
+        // NEW: Added the price field parsing to the updates
+        const variantData = {
+          sku: v.sku,
+          size: v.size || null,
+          color: v.color || null,
+          stock_count: parseInt(v.stock_count, 10) || 0,
+          price: (v.price && v.price !== '') ? parseFloat(v.price) : null
+        }
+
+        if (typeof v.id === 'string') {
+          await prisma.productVariant.update({
+            where: { id: v.id },
+            data: variantData
+          })
+        } else {
+          await prisma.productVariant.create({
+            data: {
+              ...variantData,
+              product_id: id,
+            }
+          })
+        }
+      }
+    }
+    
     revalidatePath('/admin/products')
     revalidatePath(`/admin/products/${id}`)
   } catch (error) {

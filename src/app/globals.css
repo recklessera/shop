@@ -1,12 +1,29 @@
 @import "tailwindcss";
 
 @theme {
-  /* Mapping dynamic CSS variables for the Admin Dashboard theming */
-  --color-primary: var(--theme-primary);
-  --color-secondary: var(--theme-secondary);
-  --color-accent: var(--theme-accent);
-  --color-background: #ffffff;
-  --color-foreground: #111827;
+  /* The Reckless Era Custom SaaS Palette */
+  --color-brand-gold: #D4AF37;       /* Luxury Gold for primary actions */
+  --color-brand-gold-hover: #B5952F; 
+  
+  --color-brand-pink: #EC4899;     /* Vibrant SaaS Purple for active states */
+  --color-brand-pink-dark: #BE185D;
+  
+  --color-brand-red: #EF4444;        /* Alerts and destructive actions */
+  
+  --color-sidebar-bg: #0A0A0A;       /* Ultra-dark slate/black for the sidebar */
+  --color-sidebar-hover: #1A1A1A;    
+  
+  --color-app-bg: #F4F4F5;           /* Very light cool grey to make white cards pop */
+}
+
+/* Optional: Smooth out the scrollbar for the tables we build later */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
 }
 
 @layer base {

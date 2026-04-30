@@ -16,7 +16,7 @@ model User {
   saved_addresses Json?    
   created_at      DateTime @default(now())
   orders          Order[]
-  blogs           Blog[]   // ADD THIS LINE
+  blogs           Blog[]
 }
 
 model StoreSettings {
@@ -47,7 +47,7 @@ model DiscountCode {
 
 model Collection {
   id               String    @id @default(uuid())
-  title            String   
+  title            String    
   slug             String    @unique
   description      String?
   cover_image_url  String?  
@@ -56,24 +56,38 @@ model Collection {
 }
 
 model Product {
-  id            String         @id @default(uuid())
+  id            String           @id @default(uuid())
   title         String        
-  slug          String         @unique
-  sku           String         @unique
+  slug          String           @unique
   description   String        
   price         Float         
-  stock_count   Int            @default(0)
   collection_id String        
-  collection    Collection     @relation(fields: [collection_id], references: [id])
-  is_published  Boolean        @default(false)
+  collection    Collection       @relation(fields: [collection_id], references: [id])
+  is_published  Boolean          @default(false)
+  
   images        ProductImage[]
-  orderItems    OrderItem[]
+  variants      ProductVariant[] // NEW: Products now have many variants
+  orderItems    OrderItem[]      // Kept so we can easily query all orders for a parent product
+}
+
+model ProductVariant {
+  id          String      @id @default(uuid())
+  product_id  String
+  product     Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  sku         String      @unique
+  size        String?     // e.g. "S", "M", "L"
+  color       String?     // e.g. "Black", "Crimson"
+  stock_count Int         @default(0)
+  
+  price       Float?      // NEW: Optional override price. If null, it inherits the parent product's price.
+  
+  orderItems  OrderItem[]
 }
 
 model ProductImage {
   id         String  @id @default(uuid())
   product_id String 
-  product    Product @relation(fields: [product_id], references: [id])
+  product    Product @relation(fields: [product_id], references: [id], onDelete: Cascade)
   image_url  String 
   alt_text   String?
   is_primary Boolean @default(false)
@@ -85,7 +99,7 @@ model Order {
   customer              User        @relation(fields: [customer_id], references: [id])
   total_amount          Float      
   discount_code_id      String?    
-  status                String      @default("pending") // pending, processing, shipped, delivered?
+  status                String      @default("pending")
   shipping_address      Json       
   squad_transaction_ref String?    
   created_at            DateTime    @default(now())
@@ -93,11 +107,20 @@ model Order {
 }
 
 model OrderItem {
-  id                String  @id @default(uuid())
-  order_id          String 
-  order             Order   @relation(fields: [order_id], references: [id])
-  product_id        String 
-  product           Product @relation(fields: [product_id], references: [id])
+  id                String          @id @default(uuid())
+  order_id          String
+  order             Order           @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  
+  product_id        String
+  product           Product         @relation(fields: [product_id], references: [id])
+  
+  // NEW: Link the order to the specific variant
+  variant_id        String?
+  variant           ProductVariant? @relation(fields: [variant_id], references: [id])
+  
+  // NEW: Snapshot the variant data so historical receipts don't break if you delete a variant
+  variant_snapshot  String?         // e.g., "Color: Black | Size: M"
+  
   quantity          Int    
   price_at_purchase Float  
 }
@@ -112,12 +135,12 @@ model Gallery {
 
 model Blog {
   id                 String    @id @default(uuid())
-  title              String   
+  title              String    
   slug               String    @unique
   content            String    // HTML/Markdown
-  author_id          String   
-  author             User      @relation(fields: [author_id], references: [id]) // ADD THIS LINE
+  author_id          String    
+  author             User      @relation(fields: [author_id], references: [id])
   featured_image_url String?  
   published_at       DateTime?
-  status             String    @default("draft") // Keeping it lowercase for consistency!
+  status             String    @default("draft")
 }
