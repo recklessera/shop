@@ -139,15 +139,29 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
               {lowStock.length === 0 ? (
                 <p className="p-8 text-center text-sm font-medium text-gray-500">Inventory levels are healthy.</p>
               ) : (
-                lowStock.map(product => (
-                  <Link href={`/admin/products/${product.id}`} key={product.id} className="p-5 flex justify-between items-center hover:bg-gray-50 transition-colors block group">
-                    <div>
-                      <p className="text-sm font-bold text-gray-900 print:text-black group-hover:text-brand-pink transition-colors truncate pr-2">{product.title}</p>
-                      <p className="text-xs text-gray-500 mt-0.5 font-medium">SKU: {product.sku}</p>
+                lowStock.map(item => (
+                  <Link href={`/admin/products/${item.product_id}`} key={item.id} className="p-5 flex justify-between items-center hover:bg-gray-50 transition-colors block group">
+                    <div className="flex-1 min-w-0 pr-4">
+                      
+                      <p className="text-sm font-bold text-gray-900 print:text-black group-hover:text-brand-pink transition-colors truncate pr-2">
+                        {item.product?.title || 'Unknown Product'}
+                      </p>
+                      
+                      <div className="flex items-center gap-2 mt-1">
+                        {(item.size || item.color) && (
+                          <span className="text-[10px] uppercase font-extrabold tracking-wider bg-brand-pink/10 text-brand-pink px-2 py-0.5 rounded">
+                            {[item.size, item.color].filter(Boolean).join(' / ')}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-500 font-medium tracking-wider">
+                          SKU: {item.sku}
+                        </span>
+                      </div>
                     </div>
-                    {/* SaaS Alert Badge */}
-                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-brand-red/10 text-brand-red whitespace-nowrap">
-                      {product.stock_count} left
+                    
+                    <span className="inline-flex flex-shrink-0 items-center px-3 py-1 rounded-full text-xs font-bold bg-brand-red/10 text-brand-red whitespace-nowrap">
+                      <span className="h-1.5 w-1.5 rounded-full bg-brand-red animate-pulse mr-1.5"></span>
+                      {item.stock_count} left
                     </span>
                   </Link>
                 ))

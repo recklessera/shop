@@ -2,6 +2,8 @@ import { prisma } from '@/lib/prisma'
 import AnalyticsClient from './components/AnalyticsClient'
 
 export default async function AnalyticsPage() {
+
+  const activeProductsCount = await prisma.product.count({ where: { is_published: true } })
   
   // 1. PERFORMANCE SUMMARY
   const ordersAggregation = await prisma.order.aggregate({
@@ -64,12 +66,14 @@ export default async function AnalyticsPage() {
   }).filter(item => item.title)
 
   // 3. INVENTORY HEALTH
-  const inventoryAggregation = await prisma.product.aggregate({
-    _count: { id: true },
-    _sum: { stock_count: true },
-    where: { is_published: true }
+  const inventoryAggregation = await prisma.productVariant.aggregate({
+    _count: { id: true }, // This will now give you the total number of active SKUs/Variants
+    _sum: { stock_count: true }, // Sums up the total units across all sizes/colors
+    where: { 
+      product: { is_published: true } 
+    }
   })
-  const activeProductsCount = inventoryAggregation._count.id || 0
+  
   const totalStockUnits = inventoryAggregation._sum.stock_count || 0
 
   // Pricing Stats
@@ -90,11 +94,14 @@ export default async function AnalyticsPage() {
       : (products[mid - 1].price + products[mid].price) / 2
   }
 
-  // Low Stock Items (< 5)
-  const lowStockItems = await prisma.product.findMany({
+  // Low Stock Items (< 5) - Targeting Variants now!
+  const lowStockItems = await prisma.productVariant.findMany({
     where: { stock_count: { lte: 5 } },
-    select: { id: true, title: true, stock_count: true },
-    orderBy: { stock_count: 'asc' }
+    include: {
+      product: { select: { title: true } }
+    },
+    orderBy: { stock_count: 'asc' },
+    take: 20
   })
 
   // Compile the final payload

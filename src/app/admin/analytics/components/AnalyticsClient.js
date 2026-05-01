@@ -125,7 +125,14 @@ export default function AnalyticsClient({ metrics }) {
               ) : (
                 metrics.lowStockItems.map(item => (
                   <div key={item.id} className="flex justify-between items-center border-b border-gray-50 pb-3 print:border-black">
-                    <p className="text-sm font-bold text-gray-900 truncate pr-4 print:text-black">{item.title}</p>
+                    <div className="flex-1 min-w-0 pr-4">
+                      <p className="text-sm font-bold text-gray-900 truncate print:text-black">{item.product?.title || 'Unknown Product'}</p>
+                      {(item.size || item.color) && (
+                        <p className="text-[10px] uppercase font-bold text-gray-500 mt-0.5 tracking-wider">
+                          {[item.size, item.color].filter(Boolean).join(' / ')}
+                        </p>
+                      )}
+                    </div>
                     <span className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap ${item.stock_count === 0 ? 'bg-brand-red/10 text-brand-red' : 'bg-brand-gold/10 text-brand-gold-hover'} print:bg-transparent print:border print:border-black`}>
                       {item.stock_count} left
                     </span>

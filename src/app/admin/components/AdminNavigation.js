@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { 
   LayoutDashboard, BarChart2, ShoppingBag, Tags, 
-  ShoppingCart, Image as ImageIcon, FileText, Settings,
+  ShoppingCart, Users, Image as ImageIcon, FileText, Settings,
   Ticket, LogOut, Menu, X
 } from 'lucide-react'
 
@@ -19,6 +19,7 @@ export default function AdminNavigation({ userEmail }) {
     { name: 'Products', href: '/admin/products', icon: ShoppingBag },
     { name: 'Collections', href: '/admin/collections', icon: Tags },
     { name: 'Orders', href: '/admin/orders', icon: ShoppingCart },
+    { name: 'Customers', href: '/admin/customers', icon: Users }, // NEW: Customer Directory Link
     { name: 'Gallery', href: '/admin/gallery', icon: ImageIcon },
     { name: 'Blog', href: '/admin/blog', icon: FileText },
     { name: 'Discounts', href: '/admin/discounts', icon: Ticket },
@@ -74,7 +75,7 @@ export default function AdminNavigation({ userEmail }) {
                         : 'text-gray-400 hover:bg-sidebar-hover hover:text-white'}
                     `}
                   >
-                    <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-gray' : 'text-gray-500 group-hover:text-gray-300'}`} />
+                    <Icon className={`h-5 w-5 transition-colors ${isActive ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`} />
                     {item.name}
                   </Link>
                 </li>

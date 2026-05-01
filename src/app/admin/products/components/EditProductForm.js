@@ -70,7 +70,7 @@ export default function EditProductForm({ product, collections }) {
           <input type="text" id="title" name="title" defaultValue={product.title} required className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all" />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label htmlFor="price" className="block text-sm font-bold text-gray-700 mb-2">Base Price (₦) <span className="text-brand-red">*</span></label>
             <input type="number" step="0.01" id="price" name="price" defaultValue={product.price} required className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all" />
@@ -104,86 +104,92 @@ export default function EditProductForm({ product, collections }) {
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-4">
           {variants.map((variant, index) => (
-            <div key={variant.id} className="bg-gray-50 border border-gray-200 p-4 rounded-xl relative group">
+            <div key={variant.id} className="bg-gray-50/50 border border-gray-200 p-5 rounded-xl relative group">
               {variants.length > 1 && (
                 <button 
                   type="button" 
                   onClick={() => removeVariant(variant.id)}
-                  className="absolute -top-2 -right-2 bg-white border border-gray-200 text-gray-400 hover:text-brand-red p-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-2 -right-2 bg-white border border-gray-200 text-gray-400 hover:text-brand-red hover:border-brand-red/30 hover:bg-brand-red/5 p-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all"
+                  title="Remove Variant"
                 >
-                  <Trash2 className="h-3 w-3" />
+                  <Trash2 className="h-3.5 w-3.5" />
                 </button>
               )}
               
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Size</label>
+              {/* CRITICAL FIX: Changed from grid-cols-5 to a robust 12-column staggered grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
+                
+                {/* Row 1: Size, Color, Price */}
+                <div className="sm:col-span-4 min-w-0">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Size</label>
                   <input 
                     type="text" 
                     placeholder="e.g. M, L, OS" 
                     value={variant.size || ''}
                     onChange={(e) => updateVariant(variant.id, 'size', e.target.value)}
-                    className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium focus:border-brand-pink focus:outline-none transition-all" 
+                    className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white" 
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Color</label>
+                <div className="sm:col-span-4 min-w-0">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Color</label>
                   <input 
                     type="text" 
                     placeholder="e.g. Black" 
                     value={variant.color || ''}
                     onChange={(e) => updateVariant(variant.id, 'color', e.target.value)}
-                    className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium focus:border-brand-pink focus:outline-none transition-all" 
+                    className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white" 
                   />
                 </div>
                 
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1" title="Leave blank to use base price">Price (Opt)</label>
+                <div className="sm:col-span-4 min-w-0">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5" title="Leave blank to use base price">Price Override</label>
                   <input 
                     type="number" 
                     step="0.01"
-                    placeholder="Override (₦)" 
+                    placeholder="Optional (₦)" 
                     value={variant.price || ''}
                     onChange={(e) => updateVariant(variant.id, 'price', e.target.value)}
-                    className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium focus:border-brand-pink focus:outline-none transition-all" 
+                    className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white" 
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Stock <span className="text-brand-red">*</span></label>
+                {/* Row 2: Stock, SKU */}
+                <div className="sm:col-span-4 min-w-0">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Stock <span className="text-brand-red">*</span></label>
                   <input 
                     type="number" 
                     required 
-                    value={variant.stock_count}
+                    value={variant.stock_count ?? ''}
                     onChange={(e) => updateVariant(variant.id, 'stock_count', parseInt(e.target.value) || 0)}
-                    className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium focus:border-brand-pink focus:outline-none transition-all" 
+                    className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white" 
                   />
                 </div>
 
-                <div>
-                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">SKU <span className="text-brand-red">*</span></label>
-                  <div className="flex gap-1">
+                <div className="sm:col-span-8 min-w-0">
+                  <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">SKU <span className="text-brand-red">*</span></label>
+                  <div className="flex gap-2">
                     <input 
                       type="text" 
                       required 
-                      value={variant.sku}
+                      value={variant.sku || ''}
                       onChange={(e) => updateVariant(variant.id, 'sku', e.target.value.toUpperCase())}
-                      placeholder="SKU" 
-                      className="flex-1 border border-gray-200 rounded-lg px-2 py-2 text-xs font-medium focus:border-brand-pink focus:outline-none uppercase transition-all" 
+                      placeholder="Enter SKU" 
+                      className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none uppercase transition-all bg-white" 
                     />
                     <button 
                       type="button" 
                       onClick={() => generateVariantSKU(variant.id)}
-                      className="px-2 bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 rounded-lg transition-colors"
+                      className="flex items-center justify-center px-3 bg-white border border-gray-200 hover:bg-brand-pink/5 hover:border-brand-pink/30 hover:text-brand-pink text-gray-500 rounded-lg transition-all"
                       title="Auto-Generate SKU"
                     >
-                      <Dices className="h-3 w-3" />
+                      <Dices className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
+
               </div>
             </div>
           ))}
@@ -191,8 +197,8 @@ export default function EditProductForm({ product, collections }) {
       </div>
 
       <div className="flex items-center pt-2">
-        <input type="checkbox" id="is_published" name="is_published" defaultChecked={product.is_published} className="h-4 w-4 border-gray-300 rounded text-brand-pink focus:ring-brand-pink transition-all" />
-        <label htmlFor="is_published" className="ml-3 block text-sm text-gray-900 font-bold">Publish immediately</label>
+        <input type="checkbox" id="is_published" name="is_published" defaultChecked={product.is_published} className="h-4 w-4 border-gray-300 rounded text-brand-pink focus:ring-brand-pink transition-all cursor-pointer" />
+        <label htmlFor="is_published" className="ml-3 block text-sm text-gray-900 font-bold cursor-pointer">Publish immediately</label>
       </div>
 
       <div className="pt-6 border-t border-gray-100 flex justify-end">
