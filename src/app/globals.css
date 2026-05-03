@@ -1,5 +1,19 @@
 @import "tailwindcss";
 
+@layer base {
+  /* 1. Fallback Dynamic Theme Variables (overridden by DB later) */
+  :root {
+    --theme-primary: #000000;
+    --theme-secondary: #ffffff;
+    --theme-accent: #ff0000;
+  }
+
+  /* Enforcing strict left-alignment on all typographic elements */
+  h1, h2, h3, h4, h5, h6, p, a, span {
+    text-align: left;
+  }
+}
+
 @theme {
   /* The Reckless Era Custom SaaS Palette */
   --color-brand-gold: #D4AF37;       /* Luxury Gold for primary actions */
@@ -14,6 +28,11 @@
   --color-sidebar-hover: #1A1A1A;    
   
   --color-app-bg: #F4F4F5;           /* Very light cool grey to make white cards pop */
+
+  /* 2. Map the dynamic CSS variables to Tailwind utilities for the Storefront */
+  --color-brand-primary: var(--theme-primary);
+  --color-brand-secondary: var(--theme-secondary);
+  --color-brand-accent: var(--theme-accent);
 }
 
 /* Optional: Smooth out the scrollbar for the tables we build later */
@@ -24,11 +43,4 @@
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
-}
-
-@layer base {
-  /* Enforcing strict left-alignment on all typographic elements */
-  h1, h2, h3, h4, h5, h6, p, a, span {
-    text-align: left;
-  }
 }

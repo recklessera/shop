@@ -1,5 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 1. New: Cloudinary image configuration
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+        pathname: '/**',
+      },
+    ],
+  },
+  
+  // 2. Existing: Your server actions and body size limits
   experimental: {
     serverActions: {
       allowedOrigins: [
