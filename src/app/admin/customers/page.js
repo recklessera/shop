@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { Users, Mail, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Users, Mail, Phone, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function CustomersPage({ searchParams }) {
@@ -7,7 +7,6 @@ export default async function CustomersPage({ searchParams }) {
   const currentPage = Number(params?.page) || 1
   const ITEMS_PER_PAGE = 10
 
-  // MATCHED TO SCHEMA: Using "Customer" instead of "user"
   const totalCustomers = await prisma.user.count({ 
     where: { role: 'Customer' } 
   })
@@ -26,17 +25,24 @@ export default async function CustomersPage({ searchParams }) {
   })
 
   const formattedCustomers = customers.map(customer => {
-    // Ensuring we handle cases where total_amount might be missing or zero
     const totalSpend = customer.orders.reduce((sum, order) => sum + (order.total_amount || 0), 0)
+    
+    // Safely check if they have addresses saved in the JSON
+    let addressCount = 0
+    if (customer.saved_addresses && Array.isArray(customer.saved_addresses)) {
+      addressCount = customer.saved_addresses.length
+    }
+
     return {
       ...customer,
       orderCount: customer.orders.length,
-      totalSpend
+      totalSpend,
+      addressCount
     }
   })
 
   return (
-    <div className="max-w-4xl mx-auto w-full text-left">
+    <div className="max-w-5xl mx-auto w-full text-left">
       <div className="mb-10 flex flex-col gap-1">
         <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Customer Directory</h1>
         <p className="text-sm font-medium text-gray-500">Manage your user base and track lifetime value.</p>
@@ -64,7 +70,7 @@ export default async function CustomersPage({ searchParams }) {
                   {customer.name?.charAt(0) || customer.email.charAt(0).toUpperCase()}
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0 flex flex-col gap-1">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-bold text-gray-900 truncate">
                       {customer.name || 'No Name Set'}
@@ -75,14 +81,32 @@ export default async function CustomersPage({ searchParams }) {
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-3 mt-1">
+                  
+                  {/* NEW: Added Phone and Address info to the list view */}
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                     <span className="flex items-center gap-1 text-xs text-gray-500 font-medium truncate">
                       <Mail className="h-3 w-3" /> {customer.email}
                     </span>
+                    {customer.phone_number && (
+                      <>
+                        <span className="text-gray-300 text-xs">•</span>
+                        <span className="flex items-center gap-1 text-xs text-gray-500 font-medium truncate">
+                          <Phone className="h-3 w-3" /> {customer.phone_number}
+                        </span>
+                      </>
+                    )}
+                    {customer.addressCount > 0 && (
+                      <>
+                        <span className="text-gray-300 text-xs">•</span>
+                        <span className="flex items-center gap-1 text-xs text-brand-pink font-bold">
+                          <MapPin className="h-3 w-3" /> {customer.addressCount} Saved Address{customer.addressCount > 1 ? 'es' : ''}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-8 sm:gap-12 flex-shrink-0">
+                <div className="flex items-center gap-8 sm:gap-12 flex-shrink-0 pt-2 sm:pt-0">
                   <div className="text-left sm:text-right">
                     <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Orders</p>
                     <p className="text-sm font-bold text-gray-900">{customer.orderCount}</p>
@@ -93,7 +117,7 @@ export default async function CustomersPage({ searchParams }) {
                   </div>
                 </div>
 
-                <div className="sm:ml-4">
+                <div className="sm:ml-4 pt-3 sm:pt-0 border-t border-gray-100 sm:border-t-0 mt-2 sm:mt-0">
                   <Link 
                     href={`/admin/customers/${customer.id}`}
                     className="inline-flex items-center justify-center px-4 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:text-brand-pink hover:border-brand-pink/30 hover:bg-brand-pink/5 transition-all w-full sm:w-auto"

@@ -11,11 +11,15 @@ export default function OrdersClient({ initialOrders }) {
 
   // Real-time filtering logic
   const filteredOrders = initialOrders.filter(order => {
-    // 1. Search Check
+    const searchLower = searchTerm.toLowerCase()
+    
+    // 1. Search Check (NOW INCLUDES PHONE NUMBERS)
     const matchesSearch = 
-      order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.customer?.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.customer?.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+      order.id.toLowerCase().includes(searchLower) ||
+      (order.customer?.name || '').toLowerCase().includes(searchLower) ||
+      (order.customer?.email || '').toLowerCase().includes(searchLower) ||
+      (order.phone_number || '').includes(searchLower) ||
+      (order.customer?.phone_number || '').includes(searchLower)
 
     // 2. Status Check
     const matchesStatus = statusFilter === 'All' || order.status.toLowerCase() === statusFilter.toLowerCase()
@@ -38,14 +42,17 @@ export default function OrdersClient({ initialOrders }) {
     return matchesSearch && matchesStatus && matchesDate
   })
 
-  // Generate CSV from the *currently filtered* data
+  // Generate CSV (NOW INCLUDES PHONE NUMBERS)
   const downloadCSV = () => {
-    const headers = "Order ID,Date,Customer Name,Customer Email,Total Amount (NGN),Status,Item Count\n"
+    const headers = "Order ID,Date,Customer Name,Customer Email,Customer Phone,Total Amount (NGN),Status,Item Count\n"
     const rows = filteredOrders.map(order => {
-      const name = `"${order.customer?.name || 'Unknown'}"`
+      const name = `"${order.customer?.name || 'Guest'}"`
       const email = order.customer?.email || 'No Email'
+      // Use the order-specific phone snapshot, fallback to profile phone
+      const phone = order.phone_number || order.customer?.phone_number || 'No Phone'
       const date = new Date(order.created_at).toLocaleDateString()
-      return `${order.id},${date},${name},${email},${order.total_amount},${order.status},${order._count.items}`
+      
+      return `${order.id},${date},${name},${email},${phone},${order.total_amount},${order.status},${order._count.items}`
     }).join("\n")
 
     const blob = new Blob([headers + rows], { type: 'text/csv' })
@@ -95,7 +102,7 @@ export default function OrdersClient({ initialOrders }) {
           </div>
           <input
             type="text"
-            placeholder="Search by Order ID, Name, or Email..."
+            placeholder="Search by Order ID, Name, Email, or Phone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-xl text-sm font-medium text-gray-900 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition-all bg-gray-50/50 hover:bg-gray-50 focus:bg-white"
@@ -182,7 +189,7 @@ export default function OrdersClient({ initialOrders }) {
                       {new Date(order.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">
-                      <div className="text-sm font-bold text-gray-900 group-hover:text-brand-pink transition-colors">{order.customer?.name || 'Unknown'}</div>
+                      <div className="text-sm font-bold text-gray-900 group-hover:text-brand-pink transition-colors">{order.customer?.name || 'Guest'}</div>
                       <div className="text-xs font-medium text-gray-500 mt-0.5">{order.customer?.email}</div>
                     </td>
                     <td className="px-6 py-5 whitespace-nowrap">

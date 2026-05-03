@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma'
 import AnalyticsClient from './components/AnalyticsClient'
 
+// 1. CRITICAL FIX: Ensure this page never caches so your data is always real-time
+export const dynamic = 'force-dynamic' 
+
 export default async function AnalyticsPage() {
 
   const activeProductsCount = await prisma.product.count({ where: { is_published: true } })
@@ -40,11 +43,15 @@ export default async function AnalyticsPage() {
     select: { id: true, name: true, email: true }
   })
   
-  const topCustomers = topCustomerStats.map(stat => ({
-    ...topCustomersData.find(c => c.id === stat.customer_id),
-    totalSpent: stat._sum.total_amount || 0,
-    ordersCount: stat._count.id
-  }))
+  const topCustomers = topCustomerStats.map(stat => {
+    // 2. CRITICAL FIX: Fallback in case a user was deleted but their order remained
+    const user = topCustomersData.find(c => c.id === stat.customer_id) || { name: 'Deleted User', email: 'N/A' }
+    return {
+      ...user,
+      totalSpent: stat._sum.total_amount || 0,
+      ordersCount: stat._count.id
+    }
+  })
 
   // Best Sellers
   const bestSellersGroup = await prisma.orderItem.groupBy({
@@ -67,8 +74,8 @@ export default async function AnalyticsPage() {
 
   // 3. INVENTORY HEALTH
   const inventoryAggregation = await prisma.productVariant.aggregate({
-    _count: { id: true }, // This will now give you the total number of active SKUs/Variants
-    _sum: { stock_count: true }, // Sums up the total units across all sizes/colors
+    _count: { id: true }, 
+    _sum: { stock_count: true }, 
     where: { 
       product: { is_published: true } 
     }
@@ -80,7 +87,7 @@ export default async function AnalyticsPage() {
   const products = await prisma.product.findMany({
     where: { is_published: true },
     select: { price: true },
-    orderBy: { price: 'asc' } // Sorted cheapest to most expensive
+    orderBy: { price: 'asc' } 
   })
   
   let cheapestItemPrice = 0

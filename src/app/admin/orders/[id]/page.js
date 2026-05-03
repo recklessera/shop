@@ -1,7 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Package, User, MapPin, CreditCard, Clock } from 'lucide-react'
+import { ArrowLeft, Package, User, MapPin, CreditCard, Clock, Phone } from 'lucide-react'
 import OrderStatusForm from './components/OrderStatusForm'
 
 export default async function OrderDetailPage({ params }) {
@@ -19,7 +19,7 @@ export default async function OrderDetailPage({ params }) {
               images: { where: { is_primary: true }, take: 1 }
             }
           },
-          variant: true // NEW: Fetch the variant so we can show its SKU
+          variant: true
         }
       }
     }
@@ -104,14 +104,12 @@ export default async function OrderDetailPage({ params }) {
                       {item.product.title}
                     </h4>
                     
-                    {/* NEW: Render the Variant Snapshot if it exists so the packer knows what size/color to grab */}
                     {item.variant_snapshot && (
                       <p className="text-xs font-bold text-brand-pink mt-1 bg-brand-pink/5 inline-block px-2 py-0.5 rounded">
                         {item.variant_snapshot}
                       </p>
                     )}
                     
-                    {/* NEW: Use the Variant SKU, or a fallback if the variant was deleted from the DB */}
                     <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mt-1.5">
                       SKU: {item.variant?.sku || 'N/A'}
                     </p>
@@ -162,20 +160,37 @@ export default async function OrderDetailPage({ params }) {
             <OrderStatusForm orderId={order.id} currentStatus={order.status} />
           </div>
 
-          {/* Customer Info Box */}
+          {/* Customer Info Box (UPDATED WITH PHONE) */}
           <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-6 md:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="p-2 bg-brand-pink/10 rounded-lg">
                 <User className="h-5 w-5 text-brand-pink" />
               </div>
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Customer</h3>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Customer Contact</h3>
             </div>
-            <div className="text-sm text-gray-900 space-y-1.5">
-              <p className="font-extrabold text-base">{order.customer?.name || 'Guest User'}</p>
-              <p><a href={`mailto:${order.customer?.email}`} className="text-brand-pink hover:underline font-medium">{order.customer?.email}</a></p>
-              <div className="mt-4 pt-4 border-t border-gray-100">
+            <div className="text-sm text-gray-900 space-y-3">
+              <div>
+                <p className="font-extrabold text-base">{order.customer?.name || 'Guest User'}</p>
+                <div className="flex items-center gap-2 mt-1 text-gray-500 hover:text-brand-pink transition-colors">
+                  <a href={`mailto:${order.customer?.email}`} className="font-medium">{order.customer?.email}</a>
+                </div>
+              </div>
+              
+              {/* NEW: Displays the direct order contact number */}
+              {order.phone_number && (
+                <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-100 mt-2">
+                  <Phone className="h-4 w-4 text-gray-400" />
+                  <a href={`tel:${order.phone_number}`} className="font-bold text-gray-900 hover:text-brand-pink transition-colors">
+                    {order.phone_number}
+                  </a>
+                </div>
+              )}
+
+              <div className="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between">
                 <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Account Tier</span>
-                <p className="text-sm font-bold text-gray-700 mt-0.5 capitalize">{order.customer?.role}</p>
+                <span className="text-xs font-bold text-gray-700 capitalize px-2 py-1 bg-gray-100 rounded-md">
+                  {order.customer?.role || 'Guest'}
+                </span>
               </div>
             </div>
           </div>
@@ -186,7 +201,7 @@ export default async function OrderDetailPage({ params }) {
               <div className="p-2 bg-brand-gold/10 rounded-lg">
                 <MapPin className="h-5 w-5 text-brand-gold-hover" />
               </div>
-              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Shipping Address</h3>
+              <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Shipping Details</h3>
             </div>
             <div className="text-sm text-gray-700 leading-relaxed font-medium space-y-1">
               {Object.keys(address).length === 0 ? (
@@ -197,8 +212,14 @@ export default async function OrderDetailPage({ params }) {
                   <p>{address.street}</p>
                   {address.apartment && <p>{address.apartment}</p>}
                   <p>{address.city}, {address.state} {address.postalCode}</p>
-                  <p className="font-bold">{address.country}</p>
-                  {address.phone && <p className="mt-3 pt-3 border-t border-gray-100 text-gray-500">Tel: <span className="font-bold text-gray-900">{address.phone}</span></p>}
+                  <p className="font-bold mt-1">{address.country}</p>
+                  
+                  {/* Fallback phone check inside the JSON if the main column is empty */}
+                  {!order.phone_number && address.phone && (
+                    <p className="mt-3 pt-3 border-t border-gray-100 text-gray-500">
+                      Tel: <span className="font-bold text-gray-900">{address.phone}</span>
+                    </p>
+                  )}
                 </>
               )}
             </div>

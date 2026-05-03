@@ -10,6 +10,7 @@ model User {
   id              String   @id @default(uuid())
   name            String?
   email           String   @unique
+  phone_number    String?  // NEW: Added phone number
   password_hash   String?  
   auth_provider   String   
   role            String   @default("Customer") 
@@ -97,6 +98,7 @@ model Order {
   id                    String      @id @default(uuid())
   customer_id           String     
   customer              User        @relation(fields: [customer_id], references: [id])
+  phone_number          String?
   total_amount          Float      
   discount_code_id      String?    
   status                String      @default("pending")
