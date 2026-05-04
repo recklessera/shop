@@ -5,12 +5,24 @@ import { createClient } from "@/utils/supabase/server";
 import { validateDiscountCode } from "@/lib/discounts";
 import { v4 as uuidv4 } from "uuid";
 
+// Must perfectly match the frontend logic
+function getShippingRate(state) {
+  if (!state) return 0;
+  
+  if (state === "Lagos") return 3500;
+  if (["Ogun", "Oyo", "Osun", "Ondo", "Ekiti"].includes(state)) return 5500;
+  if (["FCT - Abuja", "Rivers"].includes(state)) return 7000;
+  
+  return 10000; // Nationwide fallback
+}
+
 export async function createPendingOrder(cartItems, shippingDetails, discountCode) {
   try {
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user: authUser } } = await supabase.auth.getUser();
 
-    if (!user) throw new Error("You must be logged in to checkout.");
+    if (!authUser) throw new Error("You must be logged in to checkout.");
+    if (!shippingDetails.state) throw new Error("A valid state is required for shipping.");
 
     // 1. Fetch live products/variants to calculate true prices securely
     let subtotal = 0;
@@ -40,7 +52,7 @@ export async function createPendingOrder(cartItems, shippingDetails, discountCod
     }
 
     // 2. Securely calculate discount (if applied)
-    let finalTotal = subtotal;
+    let discountDeduction = 0;
     let appliedDiscountId = null;
 
     if (discountCode) {
@@ -48,37 +60,60 @@ export async function createPendingOrder(cartItems, shippingDetails, discountCod
       const discountResult = await validateDiscountCode(discountCode, subtotal, cartItemCollectionIds);
       
       if (discountResult.isValid) {
-        finalTotal = discountResult.newTotal;
+        discountDeduction = discountResult.deduction;
         appliedDiscountId = discountResult.discountId;
       }
     }
 
-    // 3. Generate a unique transaction reference for Squad
+    // 3. Securely calculate location-based shipping (Standard only)
+    const shippingCost = getShippingRate(shippingDetails.state);
+
+    // Final mathematical truth
+    const finalTotal = Math.max(0, subtotal - discountDeduction) + shippingCost;
     const transactionRef = `RECKLESS-${uuidv4().slice(0, 8).toUpperCase()}`;
 
-    // 4. Create the "Pending" order in the database
-    const order = await prisma.order.create({
-      data: {
-        customer_id: user.id,
-        phone_number: shippingDetails.phone,
-        total_amount: finalTotal,
-        discount_code_id: appliedDiscountId,
-        status: "pending", // Will update to "paid" after Squad confirmation
-        squad_transaction_ref: transactionRef,
-        shipping_address: shippingDetails,
-        items: {
-          create: orderItemsData
+    // 4. Create the "Pending" order and UPDATE User Profile in one transaction
+    const order = await prisma.$transaction(async (tx) => {
+      // A. Update the User profile if data is missing (Auto-Save Feature)
+      const fullName = `${shippingDetails.firstName} ${shippingDetails.lastName}`.trim();
+      
+      await tx.user.update({
+        where: { id: authUser.id },
+        data: {
+          // Only update name/phone if they are currently null/empty
+          name: { set: fullName }, 
+          phone_number: { set: shippingDetails.phone },
+          // Always save the latest shipping address as their default
+          saved_addresses: shippingDetails 
         }
-      }
+      });
+
+      // B. Create the Order
+      return await tx.order.create({
+        data: {
+          customer_id: authUser.id,
+          phone_number: shippingDetails.phone,
+          total_amount: finalTotal,
+          discount_code_id: appliedDiscountId,
+          status: "pending", 
+          squad_transaction_ref: transactionRef,
+          shipping_address: {
+            ...shippingDetails,
+            method: "standard",
+            cost: shippingCost
+          },
+          items: {
+            create: orderItemsData
+          }
+        }
+      });
     });
 
-    // Return the required data to initialize the Squad popup
     return {
       success: true,
       orderId: order.id,
       transactionRef: transactionRef,
-      email: user.email,
-      // Squad requires the amount in Kobo (multiply Naira by 100)
+      email: authUser.email,
       amountInKobo: Math.round(finalTotal * 100), 
     };
 

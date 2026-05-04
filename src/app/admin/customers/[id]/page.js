@@ -19,8 +19,25 @@ export default async function CustomerDetailPage({ params }) {
 
   const totalSpent = customer.orders.reduce((sum, o) => sum + (o.total_amount || 0), 0)
   
-  // Safely parse saved addresses (assuming it's an array of objects)
-  const addresses = Array.isArray(customer.saved_addresses) ? customer.saved_addresses : []
+  // FIX: Safely handle both single objects and arrays for saved addresses
+  let addresses = []
+  if (Array.isArray(customer.saved_addresses)) {
+    addresses = customer.saved_addresses
+  } else if (customer.saved_addresses && typeof customer.saved_addresses === 'object' && Object.keys(customer.saved_addresses).length > 0) {
+    addresses = [customer.saved_addresses] // Wrap the single object in an array so .map() works
+  }
+
+  // STANDARD: Match the SaaS Status Colors from the rest of the dashboard
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'pending': return 'bg-brand-gold/10 text-brand-gold-hover'
+      case 'processing': return 'bg-brand-pink/10 text-brand-pink'
+      case 'shipped': return 'bg-blue-100 text-blue-700'
+      case 'delivered': return 'bg-green-100 text-green-700'
+      case 'cancelled': return 'bg-brand-red/10 text-brand-red'
+      default: return 'bg-gray-100 text-gray-700'
+    }
+  }
 
   return (
     <div className="max-w-5xl mx-auto w-full text-left">
@@ -122,7 +139,7 @@ export default async function CustomerDetailPage({ params }) {
                   <Link key={order.id} href={`/admin/orders/${order.id}`} className="p-5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 hover:bg-gray-50 transition-colors group">
                     <div>
                       <p className="text-sm font-bold text-gray-900 group-hover:text-brand-pink transition-colors">
-                        Order #{order.id.slice(-6).toUpperCase()}
+                        Order #{order.id.slice(0, 8).toUpperCase()}
                       </p>
                       <p className="text-xs font-medium text-gray-500 mt-1">
                         {new Date(order.created_at).toLocaleDateString()} at {new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
@@ -131,11 +148,9 @@ export default async function CustomerDetailPage({ params }) {
                     
                     <div className="flex items-center justify-between sm:flex-col sm:items-end gap-1">
                       <p className="text-sm font-black text-gray-900">₦{(order.total_amount || 0).toLocaleString()}</p>
-                      <span className={`px-2.5 py-0.5 inline-flex text-[10px] uppercase tracking-wider font-extrabold rounded-md ${
-                        order.status === 'completed' || order.status === 'delivered' ? 'bg-green-100 text-green-700' : 
-                        order.status === 'cancelled' ? 'bg-red-100 text-red-700' :
-                        'bg-brand-gold/10 text-brand-gold-hover'
-                      }`}>
+                      
+                      {/* FIX: Using the standardized status color function */}
+                      <span className={`px-2.5 py-0.5 inline-flex text-[10px] uppercase tracking-wider font-extrabold rounded-md ${getStatusColor(order.status)}`}>
                         {order.status}
                       </span>
                     </div>

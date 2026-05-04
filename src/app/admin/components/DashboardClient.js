@@ -26,6 +26,18 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
     window.print()
   }
 
+  // Add this helper inside your DashboardClient component
+  const getStatusTextColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'delivered': return 'text-green-500'
+      case 'shipped': return 'text-blue-500'
+      case 'processing': return 'text-brand-pink'
+      case 'cancelled': return 'text-brand-red'
+      case 'pending': return 'text-brand-gold'
+      default: return 'text-gray-500'
+    }
+  }
+
   return (
     <div className="text-left w-full print:bg-white print:m-0 print:p-0">
       
@@ -222,9 +234,9 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
                     </div>
                     <div className="text-right flex-shrink-0">
                       <p className="text-sm font-extrabold text-gray-900 print:text-black">₦{order.total_amount.toLocaleString()}</p>
-                      <p className={`text-[10px] uppercase font-bold tracking-wider mt-1 ${order.status === 'completed' ? 'text-green-500' : 'text-brand-gold'}`}>
-                        {order.status}
-                      </p>
+                      <p className={`text-[10px] uppercase font-bold tracking-wider mt-1 ${getStatusTextColor(order.status)}`}>
+                          {order.status}
+                        </p>
                     </div>
                   </Link>
                 ))

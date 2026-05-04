@@ -133,12 +133,23 @@ export default async function OrderDetailPage({ params }) {
             <div className="bg-gray-50/50 px-6 py-6 border-t border-gray-100">
               <div className="flex justify-between items-center text-sm mb-3 font-medium text-gray-500">
                 <span>Subtotal</span>
-                <span className="text-gray-900 font-bold">₦{order.total_amount.toLocaleString()}</span>
+                {/* Calculate subtotal on the fly since total_amount includes shipping */}
+                <span className="text-gray-900 font-bold">
+                  ₦{(order.total_amount - (address.cost || 0)).toLocaleString()}
+                </span>
               </div>
+              
               <div className="flex justify-between items-center text-sm mb-4 font-medium text-gray-500">
-                <span>Shipping</span>
-                <span className="italic text-gray-400">Calculated at checkout</span>
+                <span className="capitalize">Shipping {address.method ? `(${address.method})` : ''}</span>
+                {address.cost !== undefined ? (
+                  <span className="text-gray-900 font-bold">
+                    {address.cost === 0 ? 'Free' : `₦${address.cost.toLocaleString()}`}
+                  </span>
+                ) : (
+                  <span className="italic text-gray-400">Calculated at checkout</span>
+                )}
               </div>
+              
               <div className="flex justify-between items-center text-lg font-black text-gray-900 pt-4 border-t border-gray-200">
                 <span>Total</span>
                 <span className="text-brand-pink">₦{order.total_amount.toLocaleString()}</span>
@@ -176,7 +187,7 @@ export default async function OrderDetailPage({ params }) {
                 </div>
               </div>
               
-              {/* NEW: Displays the direct order contact number */}
+              {/* Displays the direct order contact number */}
               {order.phone_number && (
                 <div className="flex items-center gap-2 bg-gray-50 p-3 rounded-lg border border-gray-100 mt-2">
                   <Phone className="h-4 w-4 text-gray-400" />
@@ -202,6 +213,12 @@ export default async function OrderDetailPage({ params }) {
                 <MapPin className="h-5 w-5 text-brand-gold-hover" />
               </div>
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Shipping Details</h3>
+              {/* NEW: Method Badge */}
+              {address.method && (
+                <span className="ml-auto bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider">
+                  {address.method}
+                </span>
+              )}
             </div>
             <div className="text-sm text-gray-700 leading-relaxed font-medium space-y-1">
               {Object.keys(address).length === 0 ? (

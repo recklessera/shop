@@ -5,7 +5,7 @@ import LookbookCarousel from "../components/home/LookbookCarousel";
 import CollectionGrid from "../components/home/CollectionGrid"; 
 import BrandValueProps from "../components/home/BrandValueProps"; 
 import BlogPreview from "../components/home/BlogPreview"; 
-import JoinTheInnerCircle from "../components/home/JoinTheInnerCircle"; // Updated Import
+import JoinTheInnerCircle from "../components/home/JoinTheInnerCircle";
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +16,10 @@ export default async function HomePage() {
     where: { is_published: true },
     orderBy: { id: 'desc' }, 
     take: 4,
-    include: { images: { where: { is_primary: true }, take: 1 } }
+    include: { 
+      images: { where: { is_primary: true }, take: 1 },
+      variants: { select: { stock_count: true } } // Added to check stock status
+    }
   });
 
   const lookbookItems = await prisma.gallery.findMany({
@@ -24,9 +27,10 @@ export default async function HomePage() {
     take: 7,
   });
 
+  // REDUCED: Changed take to 3 and ordered by latest first to show newest "Archives"
   const collections = await prisma.collection.findMany({
-    take: 6,
-    orderBy: { id: 'asc' } 
+    take: 3, 
+    orderBy: { id: 'desc' } 
   });
 
   const blogPosts = await prisma.blog.findMany({
@@ -51,10 +55,12 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Lookbook Section */}
       <section className="w-full bg-app-bg py-8">
         <LookbookCarousel items={lookbookItems} />
       </section>
       
+      {/* Collections (Folder Style) Section */}
       <section className="w-full bg-white">
         <CollectionGrid collections={collections} />
       </section>
@@ -63,7 +69,6 @@ export default async function HomePage() {
       
       <BlogPreview posts={blogPosts} />
       
-      {/* Final Section: Join The Inner Circle */}
       <JoinTheInnerCircle />
       
     </div>

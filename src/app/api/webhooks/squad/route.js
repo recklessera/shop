@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
+import { Resend } from 'resend';
+import OrderReceiptEmail from '@/components/emails/OrderReceiptEmail';
+
+// Initialize Resend
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req) {
   try {
@@ -12,14 +17,12 @@ export async function POST(req) {
       return NextResponse.json({ error: 'Unauthorized: No signature provided' }, { status: 401 });
     }
 
-    // 2. Verify the Cryptographic Signature
-    // Squad hashes the payload using your Secret Key via HMAC SHA512
+    // 2. Verify the Cryptographic Signature securely
     const hash = crypto
       .createHmac('sha512', process.env.SQUAD_SECRET_KEY)
       .update(rawBody)
       .digest('hex');
 
-    // Compare the hashes securely
     if (hash.toLowerCase() !== signature.toLowerCase()) {
       console.error('Webhook signature mismatch!');
       return NextResponse.json({ error: 'Unauthorized: Invalid signature' }, { status: 401 });
@@ -28,9 +31,8 @@ export async function POST(req) {
     // 3. Parse the verified payload
     const payload = JSON.parse(rawBody);
     
-    // Check if the event is a successful transaction
-    // (Squad typically uses 'charge.completed' or 'transaction.successful')
-    if (payload.Event === 'charge.completed' || payload.Event === 'charge.successful') {
+    // Squad documentation uses 'charge_successful', but we keep your checks as a safe fallback
+    if (payload.Event === 'charge_successful' || payload.Event === 'charge.completed' || payload.Event === 'charge.successful') {
       const transactionRef = payload.Body?.transaction_ref || payload.transaction_ref;
 
       if (!transactionRef) {
@@ -40,7 +42,7 @@ export async function POST(req) {
       // 4. Fetch the order from the database
       const order = await prisma.order.findFirst({
         where: { squad_transaction_ref: transactionRef },
-        include: { items: true },
+        include: { items: true, customer: true }, // Added customer include for email fallback
       });
 
       if (!order) {
@@ -48,18 +50,18 @@ export async function POST(req) {
         return NextResponse.json({ error: 'Order not found' }, { status: 404 });
       }
 
-      // 5. Idempotency Check: Did the user already trigger the success page?
-      if (order.status === 'paid') {
-        console.log(`Order ${order.id} is already paid. Ignoring webhook.`);
+      // 5. Idempotency Check: Did the webhook fire twice?
+      if (order.status !== 'pending') {
+        console.log(`Order ${order.id} is already processed. Ignoring webhook.`);
         return NextResponse.json({ message: 'Order already processed' }, { status: 200 });
       }
 
-      // 6. Process the Order (Atomic Transaction)
+      // 6. Process the Order & Inventory (Atomic Transaction)
       await prisma.$transaction(async (tx) => {
-        // A. Mark order as paid
+        // A. Mark order as 'processing' (Matches our new Admin UI Statuses)
         await tx.order.update({
           where: { id: order.id },
-          data: { status: "paid" },
+          data: { status: "processing" },
         });
 
         // B. Deduct inventory for every item
@@ -77,15 +79,47 @@ export async function POST(req) {
         }
       });
 
+      // 7. Parse the shipping address safely for the email template
+      let address = {};
+      try {
+        address = typeof order.shipping_address === 'string' 
+          ? JSON.parse(order.shipping_address) 
+          : (order.shipping_address || {});
+      } catch (e) {
+        address = {};
+      }
+
+      // 8. Trigger the automated email via Resend
+      const customerEmail = payload.Body?.email || payload.email || order.customer?.email; 
+      
+      if (customerEmail) {
+        const { error: emailError } = await resend.emails.send({
+          from: `Reckless Era <${process.env.NEXT_PUBLIC_STORE_EMAIL}>`, 
+          to: [customerEmail],
+          subject: `Order Confirmed: #${order.id.slice(0, 8).toUpperCase()}`,
+          react: OrderReceiptEmail({ 
+            firstName: address.firstName || 'Customer', 
+            orderId: order.id, 
+            total: order.total_amount,
+            method: address.method || 'Standard',
+            cost: address.cost || 0
+          }),
+        });
+
+        if (emailError) {
+          console.error('Resend Error:', emailError);
+          // We don't throw an error here because the payment and inventory succeeded.
+        }
+      }
+
       console.log(`Webhook successfully processed order: ${order.id}`);
     }
 
-    // 7. ALWAYS return a 200 OK to Squad immediately so they stop retrying
+    // 9. ALWAYS return a 200 OK to Squad immediately so they stop retrying
     return NextResponse.json({ message: 'Webhook received' }, { status: 200 });
 
   } catch (error) {
     console.error('Webhook processing error:', error);
-    // Even if our code fails, we return a 500 so Squad knows to try again later
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

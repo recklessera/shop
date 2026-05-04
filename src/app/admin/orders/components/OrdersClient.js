@@ -13,7 +13,7 @@ export default function OrdersClient({ initialOrders }) {
   const filteredOrders = initialOrders.filter(order => {
     const searchLower = searchTerm.toLowerCase()
     
-    // 1. Search Check (NOW INCLUDES PHONE NUMBERS)
+    // 1. Search Check 
     const matchesSearch = 
       order.id.toLowerCase().includes(searchLower) ||
       (order.customer?.name || '').toLowerCase().includes(searchLower) ||
@@ -42,17 +42,31 @@ export default function OrdersClient({ initialOrders }) {
     return matchesSearch && matchesStatus && matchesDate
   })
 
-  // Generate CSV (NOW INCLUDES PHONE NUMBERS)
+  // Generate CSV (UPDATED: Now extracts State, Shipping Method, and Shipping Cost)
   const downloadCSV = () => {
-    const headers = "Order ID,Date,Customer Name,Customer Email,Customer Phone,Total Amount (NGN),Status,Item Count\n"
+    const headers = "Order ID,Date,Customer Name,Customer Email,Customer Phone,State,Shipping Method,Shipping Cost (NGN),Total Amount (NGN),Status,Item Count\n"
+    
     const rows = filteredOrders.map(order => {
       const name = `"${order.customer?.name || 'Guest'}"`
       const email = order.customer?.email || 'No Email'
-      // Use the order-specific phone snapshot, fallback to profile phone
       const phone = order.phone_number || order.customer?.phone_number || 'No Phone'
       const date = new Date(order.created_at).toLocaleDateString()
       
-      return `${order.id},${date},${name},${email},${phone},${order.total_amount},${order.status},${order._count.items}`
+      // Parse shipping address safely
+      let address = {}
+      try {
+        address = typeof order.shipping_address === 'string' 
+          ? JSON.parse(order.shipping_address) 
+          : (order.shipping_address || {})
+      } catch (e) {
+        address = {}
+      }
+
+      const state = address.state || 'N/A'
+      const method = address.method || 'Standard'
+      const shippingCost = address.cost !== undefined ? address.cost : 0
+      
+      return `${order.id},${date},${name},${email},${phone},${state},${method},${shippingCost},${order.total_amount},${order.status},${order._count.items}`
     }).join("\n")
 
     const blob = new Blob([headers + rows], { type: 'text/csv' })
