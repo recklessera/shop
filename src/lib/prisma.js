@@ -4,18 +4,27 @@ import { PrismaPg } from '@prisma/adapter-pg'
 
 const globalForPrisma = globalThis
 
-// Ensure we don't open a new pool on every hot reload
-if (!globalForPrisma.pool) {
-  globalForPrisma.pool = new Pool({ 
-    connectionString: process.env.DATABASE_URL 
-  })
+if (!globalForPrisma.prisma) {
+  // 1. Initialize Pool with a strict connection limit for Next.js dev
+  if (!globalForPrisma.pool) {
+    globalForPrisma.pool = new Pool({ 
+      connectionString: process.env.DATABASE_URL,
+      // CRITICAL: Limit connections in development to prevent Supabase exhaustion
+      max: process.env.NODE_ENV === 'development' ? 2 : 20 
+    })
+  }
+
+  // 2. Only create the adapter ONCE
+  const adapter = new PrismaPg(globalForPrisma.pool)
+  
+  // 3. Initialize the client ONCE
+  globalForPrisma.prisma = new PrismaClient({ adapter })
 }
 
-const adapter = new PrismaPg(globalForPrisma.pool)
+export const prisma = globalForPrisma.prisma
 
-// Initialize the client strictly with the adapter per v7 requirements
-export const prisma = globalForPrisma.prisma || new PrismaClient({ adapter })
-
+// 4. This is no longer strictly needed because of the block above, 
+// but kept as a standard safety net.
 if (process.env.NODE_ENV !== 'production') {
   globalForPrisma.prisma = prisma
 }

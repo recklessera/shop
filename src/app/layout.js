@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 import AnnouncementBar from "@/components/layout/AnnouncementBar";
 import StickyNavbar from "@/components/layout/StickyNavbar";
+import CartDrawer from "@/components/shop/CartDrawer";
 import Footer from "@/components/layout/Footer";
 
 // 1. Performance: Optimize Font Loading
@@ -104,6 +105,7 @@ export default async function RootLayout({ children }) {
         
         <AnnouncementBar />
         <StickyNavbar />
+        <CartDrawer />
         
         <main className="flex-grow">
           {children}
