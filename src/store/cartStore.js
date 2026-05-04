@@ -6,6 +6,7 @@ export const useCartStore = create(
     (set, get) => ({
       items: [],
       isOpen: false,
+      discount: null, // Stores the result from your discounts.js
       
       // UI Controls
       toggleCart: () => set((state) => ({ isOpen: !state.isOpen })),
@@ -13,13 +14,17 @@ export const useCartStore = create(
       closeCart: () => set({ isOpen: false }),
 
       // Cart Actions
-      addItem: (item) => {
+      addItem: (item, stockLimit) => { 
         const currentItems = get().items;
-        // Create a unique ID based on product ID and variant properties
         const cartItemId = `${item.productId}-${item.variantId || 'default'}`;
         const existingItem = currentItems.find((i) => i.cartItemId === cartItemId);
 
         if (existingItem) {
+          // Check if adding more would exceed stock
+          if (existingItem.quantity + item.quantity > stockLimit) {
+            alert(`Only ${stockLimit} items available in stock.`);
+            return;
+          }
           set({
             items: currentItems.map((i) =>
               i.cartItemId === cartItemId
@@ -28,10 +33,13 @@ export const useCartStore = create(
             ),
           });
         } else {
-          set({ items: [...currentItems, { ...item, cartItemId }] });
+          // Check if initial addition exceeds stock
+          if (item.quantity > stockLimit) {
+            alert(`Only ${stockLimit} items available.`);
+            return;
+          }
+          set({ items: [...currentItems, { ...item, cartItemId, stockLimit }] }); 
         }
-        
-        // Auto-open cart when adding an item
         set({ isOpen: true });
       },
 
@@ -42,6 +50,9 @@ export const useCartStore = create(
       },
 
       updateQuantity: (cartItemId, quantity) => {
+        const item = get().items.find((i) => i.cartItemId === cartItemId);
+        if (!item) return;
+        if (quantity > item.stockLimit) return; // Prevent incrementing past stock
         if (quantity < 1) return;
         set({
           items: get().items.map((i) =>
@@ -50,10 +61,15 @@ export const useCartStore = create(
         });
       },
       
-      clearCart: () => set({ items: [] }),
+      // Discount Actions
+      applyDiscount: (discountData) => set({ discount: discountData }),
+      removeDiscount: () => set({ discount: null }),
+      
+      // Checkout Actions
+      clearCart: () => set({ items: [], discount: null }),
     }),
     {
-      name: 'reckless-cart-storage', // key in localStorage
+      name: 'reckless-era-cart', 
     }
   )
 );

@@ -21,7 +21,7 @@ export default function ShopFilterGrid({ products, collections }) {
 
   if (sortOrder === "price-low") displayedProducts.sort((a, b) => a.price - b.price);
   if (sortOrder === "price-high") displayedProducts.sort((a, b) => b.price - a.price);
-  if (sortOrder === "newest") displayedProducts.sort((a, b) => b.id.localeCompare(a.id)); // Assuming UUIDs sort somewhat chronologically, or use created_at if added to schema
+  if (sortOrder === "newest") displayedProducts.sort((a, b) => b.id.localeCompare(a.id)); 
 
   return (
     <div className="w-full">
@@ -90,31 +90,45 @@ export default function ShopFilterGrid({ products, collections }) {
           {displayedProducts.map((product) => {
             const primaryImage = product.images?.find(img => img.is_primary) || product.images?.[0];
             
+            // NEW: Calculate stock specifically for THIS product inside the loop
+            const totalStock = product.variants?.reduce((acc, v) => acc + v.stock_count, 0) || 0;
+            const isSoldOut = totalStock === 0;
+            
             return (
-              <Link key={product.id} href={`/shop/${product.slug}`} className="group cursor-pointer">
+              <Link key={product.id} href={`/shop/${product.slug}`} className="group cursor-pointer relative">
                 <div className="relative aspect-[3/4] bg-gray-100 overflow-hidden mb-4">
                   {primaryImage ? (
                     <Image
                       src={primaryImage.image_url}
                       alt={primaryImage.alt_text || product.title}
                       fill
-                      className="object-cover transition-transform duration-700 group-hover:scale-105"
+                      className={`object-cover transition-transform duration-700 group-hover:scale-105 ${isSoldOut ? 'opacity-50' : ''}`}
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">No Image</div>
                   )}
-                  {/* Optional Hover Overlay for Quick Add */}
-                  <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0 flex justify-center bg-gradient-to-t from-black/50 to-transparent">
-                    <span className="bg-white text-black px-6 py-2 text-xs font-bold uppercase tracking-widest hover:bg-brand-primary transition-colors">
-                      View Details
-                    </span>
-                  </div>
+
+                  {/* NEW: Moved the Sold Out badge inside the image container */}
+                  {isSoldOut && (
+                    <div className="absolute top-2 left-2 bg-black text-white px-3 py-1 text-[10px] font-bold uppercase tracking-widest z-10">
+                      Sold Out
+                    </div>
+                  )}
+
+                  {/* Optional Hover Overlay for Quick Add (Hidden if sold out) */}
+                  {!isSoldOut && (
+                    <div className="absolute inset-x-0 bottom-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 translate-y-4 group-hover:translate-y-0 flex justify-center bg-gradient-to-t from-black/50 to-transparent">
+                      <span className="bg-white text-black px-6 py-2 text-xs font-bold uppercase tracking-widest hover:bg-brand-primary transition-colors">
+                        View Details
+                      </span>
+                    </div>
+                  )}
                 </div>
+                
                 <div className="flex flex-col items-start text-left mt-4">
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-black mb-1">{product.title}</h3>
-                  {/* Using toLocaleString() adds the proper commas for thousands */}
-                  <p className="text-gray-500 text-sm font-medium">₦{product.price.toLocaleString()}</p>
+                  <h3 className={`text-sm font-bold uppercase tracking-widest mb-1 ${isSoldOut ? 'text-gray-400' : 'text-black'}`}>{product.title}</h3>
+                  <p className={`text-sm font-medium ${isSoldOut ? 'text-gray-400' : 'text-gray-500'}`}>₦{product.price.toLocaleString()}</p>
                 </div>
               </Link>
             );

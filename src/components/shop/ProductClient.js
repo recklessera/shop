@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ShoppingBag, ChevronRight, ChevronLeft } from "lucide-react";
+import { ShoppingBag, AlertCircle } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
 
 export default function ProductClient({ product }) {
@@ -22,30 +22,38 @@ export default function ProductClient({ product }) {
     (v) => v.size === selectedSize && v.color === selectedColor
   ) || product.variants[0]; // Fallback to first if mismatch
 
-  // Determine Price and Stock
+  // Determine Price and Stock based on the exact variant selected
   const displayPrice = activeVariant?.price || product.price;
-  const isOutOfStock = activeVariant ? activeVariant.stock_count <= 0 : true;
+  const stockLimit = activeVariant ? activeVariant.stock_count : 0;
+  const isOutOfStock = stockLimit <= 0;
 
   const addItem = useCartStore((state) => state.addItem);
 
-const handleAddToCart = () => {
-  addItem({
-    productId: product.id,
-    variantId: activeVariant?.id,
-    title: product.title,
-    price: displayPrice,
-    image: product.images[0]?.image_url,
-    variantLabel: activeVariant ? `${selectedColor} / ${selectedSize}` : '',
-    quantity: 1
-  });
-};
+  const handleAddToCart = () => {
+    // Prevent adding if somehow clicked while out of stock
+    if (isOutOfStock) return;
+
+    const itemPayload = {
+      collectionId: product.collection_id,
+      productId: product.id,
+      variantId: activeVariant?.id,
+      title: product.title,
+      price: displayPrice,
+      image: product.images[0]?.image_url,
+      variantLabel: activeVariant ? `${selectedColor} / ${selectedSize}` : '',
+      quantity: 1
+    };
+
+    // Pass the payload AND the strict stock limit to the store
+    addItem(itemPayload, stockLimit);
+  };
 
   return (
     <div className="flex flex-col lg:flex-row gap-12 lg:gap-24">
       
       {/* LEFT: Image Gallery */}
       <div className="w-full lg:w-3/5 flex flex-col-reverse md:flex-row gap-4">
-        {/* Thumbnails (Vertical on desktop, horizontal on mobile) */}
+        {/* Thumbnails */}
         <div className="flex md:flex-col gap-4 overflow-x-auto md:overflow-y-auto md:w-24 shrink-0 no-scrollbar">
           {product.images.map((img, idx) => (
             <button 
@@ -53,7 +61,7 @@ const handleAddToCart = () => {
               onClick={() => setActiveImageIndex(idx)}
               className={`relative aspect-[3/4] w-20 md:w-full shrink-0 overflow-hidden border-2 transition-all ${activeImageIndex === idx ? 'border-brand-primary' : 'border-transparent hover:border-gray-300'}`}
             >
-              <Image src={img.image_url} alt="Thumbnail" fill className="object-cover" />
+              <Image src={img.image_url} alt="Thumbnail" fill className="object-cover" sizes="80px" />
             </button>
           ))}
         </div>
@@ -65,11 +73,19 @@ const handleAddToCart = () => {
               src={product.images[activeImageIndex].image_url} 
               alt={product.title} 
               fill 
-              className="object-cover object-center"
+              className={`object-cover object-center ${isOutOfStock ? 'opacity-70' : ''}`}
               priority
+              sizes="(max-width: 768px) 100vw, 60vw"
             />
           ) : (
              <div className="w-full h-full flex items-center justify-center text-gray-400">No Image Available</div>
+          )}
+          
+          {/* Main Image Sold Out Badge */}
+          {isOutOfStock && (
+            <div className="absolute top-4 left-4 bg-black text-white px-4 py-2 text-xs font-bold uppercase tracking-widest z-10 shadow-lg">
+              Sold Out
+            </div>
           )}
         </div>
       </div>
@@ -77,7 +93,6 @@ const handleAddToCart = () => {
       {/* RIGHT: Product Info & Form */}
       <div className="w-full lg:w-2/5 flex flex-col pt-4 md:pt-10">
         
-        {/* Breadcrumbs / Collection Tag */}
         {product.collection && (
           <span className="text-brand-primary text-xs font-bold uppercase tracking-widest mb-4">
             {product.collection.title}
@@ -88,7 +103,9 @@ const handleAddToCart = () => {
           {product.title}
         </h1>
         
-      <p className="text-2xl text-gray-600 mb-8">₦{displayPrice.toLocaleString()}</p>
+        <p className={`text-2xl mb-8 ${isOutOfStock ? 'text-gray-400 line-through' : 'text-gray-600'}`}>
+          ₦{displayPrice.toLocaleString()}
+        </p>
 
         {/* Variant Selectors */}
         <div className="flex flex-col gap-8 mb-10 border-t border-b border-gray-200 py-8">
@@ -119,11 +136,11 @@ const handleAddToCart = () => {
             <div>
               <div className="flex justify-between mb-3">
                 <span className="text-sm font-bold uppercase tracking-widest">Size</span>
-                <button className="text-xs text-gray-400 hover:text-brand-primary underline underline-offset-4 uppercase tracking-wider">Size Guide</button>
+                <button className="text-xs text-gray-400 hover:text-black underline underline-offset-4 uppercase tracking-wider transition-colors">Size Guide</button>
               </div>
               <div className="grid grid-cols-4 gap-3">
                 {uniqueSizes.map(size => {
-                  // Optional: Check if this specific size+color combo is out of stock to grey it out
+                  // Check stock for this specific size + the currently selected color
                   const variantForSize = product.variants.find(v => v.size === size && v.color === selectedColor);
                   const isSizeOutOfStock = variantForSize ? variantForSize.stock_count <= 0 : true;
 
@@ -149,18 +166,26 @@ const handleAddToCart = () => {
           )}
         </div>
 
+        {/* Dynamic Stock Indicator */}
+        {!isOutOfStock && stockLimit < 5 && (
+          <div className="flex items-center text-brand-accent text-sm font-bold mb-4">
+            <AlertCircle className="w-4 h-4 mr-2" />
+            Only {stockLimit} left in stock - order soon.
+          </div>
+        )}
+
         {/* Add to Cart Action */}
         <button 
           onClick={handleAddToCart}
           disabled={isOutOfStock}
           className={`w-full py-5 flex items-center justify-center text-sm font-bold uppercase tracking-widest transition-colors ${
             isOutOfStock 
-              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
               : 'bg-black text-white hover:bg-brand-primary hover:text-black shadow-xl hover:shadow-2xl'
           }`}
         >
           {isOutOfStock ? (
-             "Out of Stock"
+             "Sold Out"
           ) : (
             <>
               <ShoppingBag className="w-5 h-5 mr-3" /> Add To Cart
