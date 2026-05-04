@@ -82,19 +82,6 @@ export default function AuthForm() {
           </svg>
           Continue with Google
         </button>
-
-        <button 
-          onClick={() => handleSocialLogin('apple')}
-          type="button"
-          className="w-full flex items-center justify-center border-2 border-black bg-black text-white py-4 font-bold uppercase tracking-widest text-xs hover:bg-white hover:text-black transition-all"
-        >
-          {/* Simple Apple SVG */}
-          <svg className="w-4 h-4 mr-3" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.04 2.26-.79 3.59-.79 1.45 0 2.52.56 3.23 1.45-2.73 1.6-2.18 5.35.69 6.47-1.12 2.1-2.29 4.23-2.59 4.95v.09z" />
-            <path d="M12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
-          </svg>
-          Continue with Apple
-        </button>
       </div>
 
       <div className="flex items-center mb-8">
