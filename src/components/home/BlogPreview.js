@@ -12,7 +12,7 @@ export default function BlogPreview({ posts }) {
         {/* Section Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
           <div>
-            <h2 className="text-3xl font-bold uppercase tracking-tighter text-brand-primary mb-2">
+            <h2 className="text-3xl font-bold uppercase tracking-tighter text-brand-black mb-2">
               From the Era
             </h2>
             <p className="text-gray-500">Culture, style, and stories from the movement.</p>
@@ -69,7 +69,7 @@ export default function BlogPreview({ posts }) {
                     {formattedDate}
                   </div>
                   
-                  <h3 className="text-xl font-bold text-brand-primary leading-snug group-hover:text-brand-accent transition-colors">
+                  <h3 className="text-xl font-bold text-brand-black leading-snug group-hover:text-brand-accent transition-colors">
                     {post.title}
                   </h3>
                   

@@ -29,12 +29,12 @@ export default function BrandValueProps() {
             return (
               <div key={index} className="flex flex-col items-center pt-8 md:pt-0 md:px-8 first:pt-0 group">
                 {/* Icon Container */}
-                <div className="bg-white p-5 rounded-full shadow-sm mb-6 text-brand-primary group-hover:scale-110 group-hover:text-brand-accent group-hover:shadow-md transition-all duration-300">
+                <div className="bg-white p-5 rounded-full shadow-sm mb-6 text-brand-accent group-hover:scale-110 group-hover:text-brand-primary group-hover:shadow-md transition-all duration-300">
                   <Icon className="w-8 h-8" strokeWidth={1.5} />
                 </div>
                 
                 {/* Text Content */}
-                <h3 className="text-lg font-bold uppercase tracking-widest text-brand-primary mb-3">
+                <h3 className="text-lg font-bold uppercase tracking-widest text-brand-black mb-3">
                   {item.title}
                 </h3>
                 <p className="text-gray-500 text-sm leading-relaxed max-w-xs">

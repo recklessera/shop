@@ -2,7 +2,7 @@ import Link from 'next/link';
 
 export default function JoinTheInnerCircle() {
   // PASTE YOUR EXACT WHATSAPP CHANNEL LINK HERE:
-  const whatsappChannelLink = "https://whatsapp.com/channel/YOUR_LINK_HERE";
+  const whatsappChannelLink = "https://whatsapp.com/channel/0029VbCvn2hCnA80I9oDFo0Z";
 
   return (
     <div className="w-full bg-black py-24 relative overflow-hidden">

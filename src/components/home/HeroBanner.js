@@ -28,7 +28,7 @@ export default function HeroBanner({ bannerUrl }) {
         </p>
         <Link 
           href="/shop" 
-          className="bg-brand-primary text-brand-secondary px-8 py-4 font-bold tracking-wide uppercase hover:bg-brand-gold hover:text-white transition-all duration-300 shadow-lg"
+          className="bg-brand-primary text-brand-secondary px-8 py-4 font-bold tracking-wide uppercase hover:bg-brand-gold-hover hover:text-black transition-all duration-300 shadow-lg"
         >
           Shop Now
         </Link>

@@ -16,7 +16,7 @@ export default function LookbookCarousel({ items }) {
   return (
     <div className="relative w-full overflow-hidden py-16 flex flex-col items-center">
       {/* 3. Typography matched to the rest of the site */}
-      <h2 className="text-3xl font-bold uppercase tracking-tighter mb-12 text-center text-brand-primary">
+      <h2 className="text-3xl font-bold uppercase tracking-tighter mb-12 text-center text-black">
         The Lookbook
       </h2>
 

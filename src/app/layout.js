@@ -109,7 +109,7 @@ export default async function RootLayout({ children }) {
           {children}
         </main>
 
-        <Footer />
+        <Footer settings={storeSettings} />
         
       </body>
     </html>

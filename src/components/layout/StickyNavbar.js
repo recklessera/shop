@@ -43,22 +43,22 @@ export default function StickyNavbar() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
-            <Link href="/shop" className="text-foreground hover:text-brand-accent transition-colors font-medium">Shop</Link>
-            <Link href="/collections" className="text-foreground hover:text-brand-accent transition-colors font-medium">Collections</Link>
-            <Link href="/lookbook" className="text-foreground hover:text-brand-accent transition-colors font-medium">Lookbook</Link>
-            <Link href="/journal" className="text-foreground hover:text-brand-accent transition-colors font-medium">Journal</Link>
+            <Link href="/shop" className="text-white hover:text-brand-primary transition-colors font-medium">Shop</Link>
+            <Link href="/collections" className="text-white hover:text-brand-primary transition-colors font-medium">Collections</Link>
+            <Link href="/lookbook" className="text-white hover:text-brand-primary transition-colors font-medium">Lookbook</Link>
+            <Link href="/journal" className="text-white hover:text-brand-primary transition-colors font-medium">Journal</Link>
           </nav>
 
           {/* User Account & Cart Actions */}
           <div className="flex items-center space-x-4">
-            <Link href="/account" className="text-foreground hover:text-brand-accent transition-colors p-2">
+            <Link href="/account" className="text-white hover:text-brand-primary transition-colors p-2">
               <User className="h-5 w-5" />
             </Link>
             
             {/* Cart Trigger Button */}
-            <button className="text-foreground hover:text-brand-accent transition-colors p-2 relative">
+            <button className="text-white hover:text-brand-primary transition-colors p-2 relative">
               <ShoppingCart className="h-5 w-5" />
-              <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-brand-secondary bg-brand-accent rounded-full transform translate-x-1/4 -translate-y-1/4">
+              <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-black bg-brand-primary rounded-full transform translate-x-1/4 -translate-y-1/4">
                 0
               </span>
             </button>

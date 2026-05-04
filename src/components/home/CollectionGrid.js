@@ -6,7 +6,7 @@ export default function CollectionGrid({ collections }) {
 
   return (
     <div className="w-full py-16">
-      <h2 className="text-3xl font-bold uppercase tracking-tighter mb-12 text-center text-brand-primary">
+      <h2 className="text-3xl font-bold uppercase tracking-tighter mb-12 text-center text-black">
         View All Collections
       </h2>
 
