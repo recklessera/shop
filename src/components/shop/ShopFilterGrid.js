@@ -1,33 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation"; // 1. Import this
 import { SlidersHorizontal, ChevronDown, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function ShopFilterGrid({ products, collections }) {
-  const [activeCollection, setActiveCollection] = useState("All");
+  const searchParams = useSearchParams();
+  
+  // 2. Initialize state from the URL parameter if it exists
+  const [activeCollection, setActiveCollection] = useState(searchParams.get("collection") || "All");
   const [sortOrder, setSortOrder] = useState("newest");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
-  
-  // NEW: Search & Pagination State
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 8; // Adjust this number as needed
+  const itemsPerPage = 8; 
 
-  // 1. Apply Filtering (Collection + Search)
+  // 3. Keep state synced if the URL changes while already on the page
+  useEffect(() => {
+    const col = searchParams.get("collection");
+    if (col) setActiveCollection(col);
+  }, [searchParams]);
+
   let displayedProducts = products.filter((p) => {
     const matchesCollection = activeCollection === "All" || p.collection?.title === activeCollection;
     const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCollection && matchesSearch;
   });
 
-  // 2. Apply Sorting
+  // 4. Sort using the new created_at field instead of random UUIDs
   if (sortOrder === "price-low") displayedProducts.sort((a, b) => a.price - b.price);
   if (sortOrder === "price-high") displayedProducts.sort((a, b) => b.price - a.price);
-  if (sortOrder === "newest") displayedProducts.sort((a, b) => b.id.localeCompare(a.id));
+  if (sortOrder === "newest") displayedProducts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-  // 3. Apply Pagination Math
+  // 5. Apply Pagination Math
   const totalPages = Math.ceil(displayedProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const paginatedProducts = displayedProducts.slice(startIndex, startIndex + itemsPerPage);

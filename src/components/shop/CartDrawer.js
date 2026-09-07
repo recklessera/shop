@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { X, Minus, Plus, ShoppingBag, ArrowRight } from "lucide-react";
 import { useCartStore } from "@/store/cartStore";
-import { applyDiscountAction } from "@/app/actions/cart"; // Our new bridge
+import { applyDiscountAction } from "@/app/actions/cart"; 
 import { createClient } from "@/utils/supabase/client"; 
 import { useRouter } from "next/navigation";
 
@@ -13,11 +13,17 @@ export default function CartDrawer() {
   const [promoInput, setPromoInput] = useState("");
   const [promoError, setPromoError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isMounted, setIsMounted] = useState(false); // NEW
   
   const router = useRouter();
   const supabase = createClient();
 
-  if (!isOpen) return null;
+  // NEW: Hydration fix
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isOpen || !isMounted) return null;
 
   // --- Calculations ---
   const subtotal = items.reduce((total, item) => total + item.price * item.quantity, 0);
@@ -32,7 +38,7 @@ export default function CartDrawer() {
     setIsProcessing(true);
     setPromoError("");
 
-    // Extract collection IDs from cart items (for your collection lock feature!)
+    // Extract collection IDs from cart items
     const cartItemCollectionIds = items.map(item => item.collectionId).filter(Boolean);
 
     // Call the Server Action

@@ -176,7 +176,7 @@ export default function CheckoutClient({ initialUserData }) {
                 <Truck className="w-5 h-5 mr-4 text-black" />
                 <div className="flex-1">
                   <span className="block text-sm font-bold uppercase tracking-widest">Standard Delivery</span>
-                  <span className="block text-xs text-gray-500 mt-1">3-5 Business Days</span>
+                  <span className="block text-xs text-gray-500 mt-1">5-10 Business Days</span>
                 </div>
                 <span className="font-bold">₦{shippingCost.toLocaleString()}</span>
               </div>

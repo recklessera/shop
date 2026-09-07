@@ -8,7 +8,7 @@ export default function BrandValueProps() {
       icon: Globe,
     },
     {
-      title: "Style Without Limits",
+      title: "OFF COURSE. ON PURPOSE",
       description: "Confidence, passion, and dreams stitched into every piece. Designed for the bold.",
       icon: Flame,
     },

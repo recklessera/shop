@@ -18,7 +18,7 @@ export default function Footer({ settings }) {
               Reckless Era
             </h3>
             <p className="text-sm leading-relaxed">
-              Style without limits. Premium quality pieces built for those who refuse to blend in.
+              OFF COURSE. ON PURPOSE. Premium quality pieces built for those who refuse to blend in.
             </p>
             {settings?.contact_email && (
               <a href={`mailto:${settings.contact_email}`} className="flex items-center text-sm hover:text-brand-primary transition-colors mt-4">

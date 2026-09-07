@@ -28,7 +28,7 @@ export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://recklessera.com"),
   
   title: {
-    default: "Reckless Era | Style Without Limits",
+    default: "Reckless Era | OFF COURSE. ON PURPOSE",
     template: "%s | Reckless Era", // Child pages will automatically format as "Shop | Reckless Era"
   },
   description: "Discover the Reckless Era. Premium quality, bold designs, and uncompromising craftsmanship for those who refuse to blend in. Worldwide shipping available.",
@@ -40,7 +40,7 @@ export const metadata = {
     type: "website",
     locale: "en_US",
     url: "/",
-    title: "Reckless Era | Style Without Limits",
+    title: "Reckless Era | OFF COURSE. ON PURPOSE",
     description: "Premium quality pieces built for those who refuse to blend in. Join the Inner Circle.",
     siteName: "Reckless Era",
     images: [
@@ -55,7 +55,7 @@ export const metadata = {
   
   twitter: {
     card: "summary_large_image",
-    title: "Reckless Era | Style Without Limits",
+    title: "Reckless Era | OFF COURSE. ON PURPOSE",
     description: "Premium quality pieces built for those who refuse to blend in. Worldwide shipping.",
     images: ["/og-image.jpg"],
   },

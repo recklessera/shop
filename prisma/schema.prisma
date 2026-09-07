@@ -65,6 +65,7 @@ model Product {
   collection_id String        
   collection    Collection       @relation(fields: [collection_id], references: [id])
   is_published  Boolean          @default(false)
+  created_at    DateTime         @default(now())
   
   images        ProductImage[]
   variants      ProductVariant[] // NEW: Products now have many variants
