@@ -1,16 +1,18 @@
 "use client";
 
-import { useState, useEffect } from 'react'; // Added these hooks
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ShoppingCart, User, Menu } from 'lucide-react';
+import { ShoppingCart, User, Menu, X } from 'lucide-react'; // Added 'X' icon
 import { useCartStore } from '@/store/cartStore';
 
 export default function StickyNavbar() {
   const { items, toggleCart } = useCartStore();
   
-  // 1. Prevent Hydration Errors by delaying the cart count render
+  // States
   const [isMounted, setIsMounted] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // New state
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -18,15 +20,18 @@ export default function StickyNavbar() {
   const cartItemCount = items.reduce((total, item) => total + item.quantity, 0);
 
   return (
-    <header className="sticky top-0 z-[100] bg-brand-secondary border-b border-gray-200 shadow-sm">
+    <header className="sticky top-0 z-[100] bg-brand-secondary border-b border-gray-800 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           
-          {/* Mobile Menu Button (Hidden on Desktop) */}
+          {/* Mobile Menu Button */}
           <div className="flex items-center md:hidden">
-            {/* 2. Changed text-foreground to text-white */}
-            <button className="text-white p-2 hover:text-brand-primary transition-colors">
-              <Menu className="h-6 w-6" />
+            <button 
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Toggle mobile menu"
+              className="text-white p-2 hover:text-brand-primary transition-colors"
+            >
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
 
@@ -58,15 +63,12 @@ export default function StickyNavbar() {
 
           {/* User Account & Cart Actions */}
           <div className="flex items-center space-x-4">
-            <Link href="/account" className="text-white hover:text-brand-primary transition-colors p-2">
+            <Link href="/account" aria-label="User Account" className="text-white hover:text-brand-primary transition-colors p-2">
               <User className="h-5 w-5" />
             </Link>
             
-            {/* Cart Trigger Button */}
-            <button onClick={toggleCart} className="text-white hover:text-brand-primary transition-colors p-2 relative">
+            <button onClick={toggleCart} aria-label="Open Cart" className="text-white hover:text-brand-primary transition-colors p-2 relative">
               <ShoppingCart className="h-5 w-5" />
-              
-              {/* Only render the badge if mounted AND there are items */}
               {isMounted && cartItemCount > 0 && (
                 <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-black bg-brand-primary rounded-full transform translate-x-1/4 -translate-y-1/4">
                   {cartItemCount}
@@ -77,6 +79,18 @@ export default function StickyNavbar() {
 
         </div>
       </div>
+
+      {/* Mobile Menu Dropdown */}
+      {isMobileMenuOpen && (
+        <nav className="md:hidden bg-brand-secondary border-t border-gray-800">
+          <div className="px-4 pt-2 pb-4 space-y-1 flex flex-col">
+            <Link onClick={() => setIsMobileMenuOpen(false)} href="/shop" className="text-white hover:text-brand-primary block px-3 py-2 font-medium">Shop</Link>
+            <Link onClick={() => setIsMobileMenuOpen(false)} href="/collections" className="text-white hover:text-brand-primary block px-3 py-2 font-medium">Collections</Link>
+            <Link onClick={() => setIsMobileMenuOpen(false)} href="/lookbook" className="text-white hover:text-brand-primary block px-3 py-2 font-medium">Lookbook</Link>
+            <Link onClick={() => setIsMobileMenuOpen(false)} href="/journal" className="text-white hover:text-brand-primary block px-3 py-2 font-medium">Journal</Link>
+          </div>
+        </nav>
+      )}
     </header>
   );
 }

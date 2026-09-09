@@ -3,22 +3,25 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
-// --- NEW: Import icons for the password toggle ---
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  // --- NEW: State to track password visibility ---
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  
   const [error, setError] = useState(null);
+  // --- NEW: State for success messages ---
+  const [successMessage, setSuccessMessage] = useState(null); 
+  
   const router = useRouter();
   const supabase = createClient();
 
   const handleSocialLogin = async (provider) => {
     setError(null);
+    setSuccessMessage(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: provider,
       options: {
@@ -33,21 +36,52 @@ export default function AuthForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuccessMessage(null);
 
     try {
       if (isLogin) {
+        // LOGIN FLOW
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        router.refresh(); 
       } else {
+        // SIGNUP FLOW
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
+        
+        // Show success message, clear form, and switch to Login view
+        setSuccessMessage("Account created successfully! Please check your inbox to verify your email address.");
+        setEmail('');
+        setPassword('');
+        setIsLogin(true);
       }
-      router.refresh(); 
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address first.");
+      setSuccessMessage(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/account/update-password`,
+    });
+
+    if (error) {
+      setError(error.message);
+    } else {
+      setSuccessMessage("Password reset link sent! Please check your email."); 
+    }
+    setLoading(false);
   };
 
   return (
@@ -61,9 +95,17 @@ export default function AuthForm() {
         </p>
       </div>
 
+      {/* ERROR MESSAGE BANNER */}
       {error && (
         <div className="bg-red-50 text-red-600 p-4 text-sm font-bold border border-red-200 mb-6">
           {error}
+        </div>
+      )}
+
+      {/* SUCCESS MESSAGE BANNER */}
+      {successMessage && (
+        <div className="bg-green-50 text-green-700 p-4 text-sm font-bold border border-green-200 mb-6">
+          {successMessage}
         </div>
       )}
 
@@ -104,7 +146,6 @@ export default function AuthForm() {
 
         <div className="flex flex-col space-y-2">
           <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Password</label>
-          {/* --- NEW: Password input with absolute positioned toggle button --- */}
           <div className="relative w-full">
             <input 
               type={showPassword ? "text" : "password"} 
@@ -123,6 +164,17 @@ export default function AuthForm() {
               {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
             </button>
           </div>
+          
+          {/* UPDATED: Only show Forgot Password on Login */}
+          {isLogin && (
+            <button 
+              type="button" 
+              onClick={handleForgotPassword}
+              className="text-xs text-gray-500 hover:text-black self-end mt-1 font-bold uppercase tracking-widest"
+            >
+              Forgot Password?
+            </button>
+          )}
         </div>
 
         <button 
@@ -139,6 +191,7 @@ export default function AuthForm() {
           onClick={() => {
             setIsLogin(!isLogin);
             setError(null);
+            setSuccessMessage(null); // Clear messages when switching tabs
           }}
           className="text-sm text-gray-500 hover:text-brand-primary transition-colors font-bold uppercase tracking-widest"
         >
