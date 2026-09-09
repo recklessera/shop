@@ -4,6 +4,14 @@ import { useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { updatePrismaProfile } from "@/app/account/actions";
 
+// --- NEW: Added the states array to ensure consistency with checkout ---
+const NIGERIAN_STATES = [
+  "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River",
+  "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT - Abuja", "Gombe", "Imo", "Jigawa", "Kaduna",
+  "Kano", "Katsina", "Kebbi", "Kogi", "Kwara", "Lagos", "Nasarawa", "Niger", "Ogun", "Ondo",
+  "Osun", "Oyo", "Plateau", "Rivers", "Sokoto", "Taraba", "Yobe", "Zamfara"
+];
+
 export default function AccountSettings({ dbUser, authUser }) {
   const supabase = createClient();
   const [activeTab, setActiveTab] = useState("profile");
@@ -13,9 +21,13 @@ export default function AccountSettings({ dbUser, authUser }) {
   // State: Profile (Prisma)
   const [name, setName] = useState(dbUser?.name || "");
   const [phone, setPhone] = useState(dbUser?.phone_number || "");
-  const [address, setAddress] = useState(
-    dbUser?.saved_addresses ? JSON.stringify(dbUser.saved_addresses, null, 2) : "{\n  \"street\": \"\",\n  \"city\": \"\",\n  \"state\": \"\"\n}"
-  );
+  
+  // --- NEW: Handle address as an object, not a JSON string ---
+  const [address, setAddress] = useState({
+    street: dbUser?.saved_addresses?.street || "",
+    city: dbUser?.saved_addresses?.city || "",
+    state: dbUser?.saved_addresses?.state || "",
+  });
 
   // State: Security (Supabase)
   const [email, setEmail] = useState(authUser?.email || "");
@@ -34,7 +46,8 @@ export default function AccountSettings({ dbUser, authUser }) {
     const result = await updatePrismaProfile(dbUser.id, {
       name,
       phone_number: phone,
-      saved_addresses: address,
+      // --- NEW: Stringify the object right before sending it to the server ---
+      saved_addresses: JSON.stringify(address),
     });
 
     if (result.error) showMessage(result.error, "error");
@@ -91,19 +104,58 @@ export default function AccountSettings({ dbUser, authUser }) {
 
       {/* Profile Form (Prisma Data) */}
       {activeTab === "profile" && (
-        <form onSubmit={handleProfileUpdate} className="space-y-4">
-          <div className="flex flex-col space-y-1">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Full Name</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="border-b-2 border-gray-200 py-2 focus:outline-none focus:border-brand-primary" />
+        <form onSubmit={handleProfileUpdate} className="space-y-6">
+          <div className="space-y-4">
+            <div className="flex flex-col space-y-1">
+              <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Full Name</label>
+              <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="border-b-2 border-gray-200 py-2 focus:outline-none focus:border-brand-primary" />
+            </div>
+            <div className="flex flex-col space-y-1">
+              <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Phone Number</label>
+              <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="border-b-2 border-gray-200 py-2 focus:outline-none focus:border-brand-primary" />
+            </div>
           </div>
-          <div className="flex flex-col space-y-1">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Phone Number</label>
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} className="border-b-2 border-gray-200 py-2 focus:outline-none focus:border-brand-primary" />
+
+          {/* --- NEW: Clean Address Fields --- */}
+          <div className="pt-4 border-t border-gray-100 space-y-4">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-black mb-2">Saved Address</h3>
+            
+            <div className="flex flex-col space-y-1">
+              <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Street Address</label>
+              <input 
+                type="text" 
+                value={address.street} 
+                onChange={(e) => setAddress({ ...address, street: e.target.value })} 
+                className="border-b-2 border-gray-200 py-2 focus:outline-none focus:border-brand-primary" 
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col space-y-1">
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-500">City</label>
+                <input 
+                  type="text" 
+                  value={address.city} 
+                  onChange={(e) => setAddress({ ...address, city: e.target.value })} 
+                  className="border-b-2 border-gray-200 py-2 focus:outline-none focus:border-brand-primary" 
+                />
+              </div>
+              <div className="flex flex-col space-y-1">
+                <label className="text-xs font-bold uppercase tracking-widest text-gray-500">State</label>
+                <select 
+                  value={address.state} 
+                  onChange={(e) => setAddress({ ...address, state: e.target.value })} 
+                  className="border-b-2 border-gray-200 py-2 focus:outline-none focus:border-brand-primary bg-transparent cursor-pointer"
+                >
+                  <option value="" disabled>Select State</option>
+                  {NIGERIAN_STATES.map((state) => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
-          <div className="flex flex-col space-y-1">
-            <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Saved Address (JSON format)</label>
-            <textarea value={address} onChange={(e) => setAddress(e.target.value)} rows="4" className="border-2 border-gray-200 p-2 text-sm font-mono focus:outline-none focus:border-brand-primary" />
-          </div>
+
           <button type="submit" disabled={loading} className="w-full bg-black text-white py-4 font-bold uppercase tracking-widest text-xs hover:bg-brand-primary hover:text-black transition-colors mt-4 disabled:opacity-50">
             {loading ? "Saving..." : "Save Profile Details"}
           </button>

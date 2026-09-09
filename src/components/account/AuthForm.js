@@ -3,23 +3,25 @@
 import { useState } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { useRouter } from 'next/navigation';
+// --- NEW: Import icons for the password toggle ---
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function AuthForm() {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // --- NEW: State to track password visibility ---
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const router = useRouter();
   const supabase = createClient();
 
-  // --- NEW: Social Login Handler ---
   const handleSocialLogin = async (provider) => {
     setError(null);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: provider,
       options: {
-        // This is crucial: we send them to a callback route to set the secure server cookie
         redirectTo: `${window.location.origin}/auth/callback`, 
       },
     });
@@ -27,7 +29,6 @@ export default function AuthForm() {
     if (error) setError(error.message);
   };
 
-  // Standard Email/Password Handler
   const handleAuth = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -61,19 +62,17 @@ export default function AuthForm() {
       </div>
 
       {error && (
-        <div className="bg-red-50 text-brand-accent p-4 text-sm font-bold border border-red-200 mb-6">
+        <div className="bg-red-50 text-red-600 p-4 text-sm font-bold border border-red-200 mb-6">
           {error}
         </div>
       )}
 
-      {/* --- NEW: Social Login Buttons --- */}
       <div className="flex flex-col space-y-3 mb-8">
         <button 
           onClick={() => handleSocialLogin('google')}
           type="button"
           className="w-full flex items-center justify-center border-2 border-gray-200 bg-white text-black py-4 font-bold uppercase tracking-widest text-xs hover:border-black transition-all"
         >
-          {/* Simple Google SVG */}
           <svg className="w-4 h-4 mr-3" viewBox="0 0 24 24">
             <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
             <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -105,14 +104,25 @@ export default function AuthForm() {
 
         <div className="flex flex-col space-y-2">
           <label className="text-xs font-bold uppercase tracking-widest text-gray-500">Password</label>
-          <input 
-            type="password" 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="border-b-2 border-gray-200 py-3 focus:outline-none focus:border-brand-primary transition-colors bg-transparent"
-            placeholder="••••••••"
-          />
+          {/* --- NEW: Password input with absolute positioned toggle button --- */}
+          <div className="relative w-full">
+            <input 
+              type={showPassword ? "text" : "password"} 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              className="w-full border-b-2 border-gray-200 py-3 pr-10 focus:outline-none focus:border-brand-primary transition-colors bg-transparent"
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-black transition-colors focus:outline-none"
+              aria-label={showPassword ? "Hide password" : "Show password"}
+            >
+              {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
 
         <button 

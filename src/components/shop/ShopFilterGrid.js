@@ -58,7 +58,7 @@ export default function ShopFilterGrid({ products, collections }) {
           </div>
           <input
             type="text"
-            placeholder="Search the collection..."
+            placeholder="Search the catalogue..."
             value={searchTerm}
             onChange={(e) => handleFilterChange('search', e.target.value)}
             className="block w-full pl-11 pr-4 py-3 border border-gray-200 rounded-sm text-sm font-medium focus:border-black outline-none transition-all"
