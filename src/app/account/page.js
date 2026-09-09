@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { prisma } from '@/lib/prisma';
 import AuthForm from '@/components/account/AuthForm';
+import CancelOrderButton from '@/components/account/CancelOrderButton';
 import AccountSettings from '@/components/account/AccountSettings';
 
 export const dynamic = 'force-dynamic';
@@ -106,6 +107,12 @@ export default async function AccountPage() {
                           <span>₦{(item.price_at_purchase * item.quantity).toLocaleString()}</span>
                         </div>
                       ))}
+                      {/* NEW: Cancel Button for Pending Orders */}
+                          {order.status === "PENDING" && (
+                            <div className="border-t border-gray-100 mt-4 pt-4">
+                              <CancelOrderButton orderId={order.id} />
+                            </div>
+                          )}
                     </div>
                   </div>
                 ))}

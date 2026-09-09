@@ -35,6 +35,7 @@ export default function CheckoutClient({ initialUserData }) {
   const { items, discount, clearCart } = useCartStore();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [isScriptReady, setIsScriptReady] = useState(false);
   const [error, setError] = useState(null);
 
   // Form State
@@ -67,10 +68,10 @@ export default function CheckoutClient({ initialUserData }) {
     }
 
     // SAFETY CHECK: Ensure the script has loaded
-    if (typeof window === 'undefined' || !window.SquadPay) {
-      setError("Payment system is still loading. Please wait a second and try again.");
-      return;
-    }
+   if (!isScriptReady || typeof window === 'undefined' || !window.SquadPay) {
+    setError("Payment system is blocked. Please disable your ad-blocker or wait a moment for it to load.");
+    return;
+  }
     
     setLoading(true);
     setError(null);
@@ -113,9 +114,13 @@ export default function CheckoutClient({ initialUserData }) {
 
   return (
     <>
-      {/* Load the Squad script perfectly */}
-      <Script src="https://checkout.squadco.com/widget/squad.min.js" strategy="afterInteractive" />
-      
+      {/* Load the Squad script perfectly and track when it is ready */}
+        <Script 
+          src="https://checkout.squadco.com/widget/squad.min.js" 
+          strategy="lazyOnload"
+          onReady={() => setIsScriptReady(true)}
+        />
+        
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* LEFT: Shipping Form */}
         <div>

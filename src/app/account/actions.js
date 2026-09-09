@@ -32,3 +32,28 @@ export async function updatePrismaProfile(userId, formData) {
     return { error: "Failed to update profile information." };
   }
 }
+export async function cancelPendingOrder(orderId) {
+  try {
+    // 1. Check if the order exists and is actually pending
+    const order = await prisma.order.findUnique({
+      where: { id: orderId }
+    });
+
+    if (!order || order.status !== "PENDING") {
+      return { error: "Only pending orders can be cancelled." };
+    }
+
+    // 2. Update the status
+    await prisma.order.update({
+      where: { id: orderId },
+      data: { status: "CANCELLED" }
+    });
+
+    // 3. Refresh the account page
+    revalidatePath("/account");
+    return { success: true };
+  } catch (error) {
+    console.error(error);
+    return { error: "Failed to cancel the order." };
+  }
+}
