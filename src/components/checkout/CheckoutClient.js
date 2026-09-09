@@ -5,7 +5,6 @@ import { useCartStore } from "@/store/cartStore";
 import { createPendingOrder } from "@/app/actions/checkout";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Script from 'next/script';
 import { Lock, Truck } from "lucide-react";
 
 // --- Location-Based Shipping Logic ---
@@ -30,6 +29,23 @@ function getShippingRate(state) {
   }
   return 10000; // Nationwide
 }
+
+// --- Bulletproof Script Loader ---
+const loadSquadScript = () => {
+  return new Promise((resolve) => {
+    // If it's already loaded, immediately resolve
+    if (typeof window !== 'undefined' && window.SquadPay) {
+      resolve(true);
+      return;
+    }
+    // Otherwise, inject it and wait for it to finish
+    const script = document.createElement("script");
+    script.src = "https://checkout.squadco.com/widget/squad.min.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
 export default function CheckoutClient({ initialUserData }) {
   const { items, discount, clearCart } = useCartStore();
@@ -66,16 +82,19 @@ export default function CheckoutClient({ initialUserData }) {
       return;
     }
 
-    // SAFETY CHECK: Ensure the script has actually loaded in the browser
-    if (typeof window === 'undefined' || !window.SquadPay) {
-      setError("Payment system is blocked. Please disable your ad-blocker (like Brave Shields) or wait a moment for it to load.");
-      return;
-    }
-    
-    setLoading(true);
+    setLoading(true); // Start the loading spinner immediately
     setError(null);
 
-    // Pass "standard" hardcoded since express is removed
+    // 1. Force the app to wait for the script to load BEFORE proceeding
+    const isScriptLoaded = await loadSquadScript();
+    
+    if (!isScriptLoaded || typeof window === 'undefined' || !window.SquadPay) {
+      setError("Failed to connect to the payment gateway. Please check your internet connection or disable any strict ad-blockers.");
+      setLoading(false);
+      return;
+    }
+
+    // 2. Create the pending order
     const result = await createPendingOrder(items, shipping, discount?.code, "standard");
 
     if (result.error) {
@@ -84,6 +103,7 @@ export default function CheckoutClient({ initialUserData }) {
       return;
     }
 
+    // 3. Launch SquadPay
     const squadInstance = new window.SquadPay({
       onClose: () => {
         setLoading(false);
@@ -113,12 +133,6 @@ export default function CheckoutClient({ initialUserData }) {
 
   return (
     <>
-      {/* Load the Squad script perfectly */}
-      <Script 
-        src="https://checkout.squadco.com/widget/squad.min.js" 
-        strategy="afterInteractive" 
-      />
-      
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
         {/* LEFT: Shipping Form */}
         <div>
