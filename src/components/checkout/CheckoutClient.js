@@ -34,7 +34,7 @@ function getShippingRate(state) {
 const loadSquadScript = () => {
   return new Promise((resolve) => {
     // If it's already loaded, immediately resolve
-    if (typeof window !== 'undefined' && window.SquadPay) {
+    if (typeof window !== 'undefined' && window.squad) {
       resolve(true);
       return;
     }
@@ -88,7 +88,7 @@ export default function CheckoutClient({ initialUserData }) {
     // 1. Force the app to wait for the script to load BEFORE proceeding
     const isScriptLoaded = await loadSquadScript();
     
-    if (!isScriptLoaded || typeof window === 'undefined' || !window.SquadPay) {
+    if (!isScriptLoaded || typeof window === 'undefined' || !window.squad) {
       setError("Failed to connect to the payment gateway. Please check your internet connection or disable any strict ad-blockers.");
       setLoading(false);
       return;
@@ -103,8 +103,8 @@ export default function CheckoutClient({ initialUserData }) {
       return;
     }
 
-    // 3. Launch SquadPay
-    const squadInstance = new window.SquadPay({
+    // 3. Launch squad
+    const squadInstance = new window.squad({
       onClose: () => {
         setLoading(false);
       },
