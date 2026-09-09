@@ -39,7 +39,7 @@ export async function cancelPendingOrder(orderId) {
       where: { id: orderId }
     });
 
-    if (!order || order.status !== "PENDING") {
+    if (!order || order.status !== "pending") {
       return { error: "Only pending orders can be cancelled." };
     }
 

@@ -108,7 +108,7 @@ export default async function AccountPage() {
                         </div>
                       ))}
                       {/* NEW: Cancel Button for Pending Orders */}
-                          {order.status === "PENDING" && (
+                          {order.status === "pending" && (
                             <div className="border-t border-gray-100 mt-4 pt-4">
                               <CancelOrderButton orderId={order.id} />
                             </div>
