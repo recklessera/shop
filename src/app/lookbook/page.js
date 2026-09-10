@@ -22,20 +22,22 @@ export default async function LookbookPage() {
   )];
 
   return (
-    <div className="w-full bg-app-bg min-h-screen py-16">
+    <div className="w-full bg-app-bg min-h-screen pt-20 pb-24">
       
-      {/* Page Header */}
-      <div className="max-w-4xl mx-auto text-center px-4 mb-16">
-        <h1 className="text-5xl md:text-6xl font-bold uppercase tracking-tighter text-black mb-6">
-          The Lookbook
-        </h1>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          A visual archive of our campaigns, street style, and the people who define the Reckless Era.
-        </p>
+      {/* Page Header - Adjusted for sharp left-alignment on desktop */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12">
+        <div className="max-w-2xl text-left">
+          <h1 className="text-5xl md:text-7xl font-bold uppercase tracking-tighter text-black mb-4">
+            The Lookbook
+          </h1>
+          <p className="text-sm md:text-base text-gray-500 uppercase tracking-widest font-bold">
+            A visual archive of our campaigns and the people who define the Reckless Era.
+          </p>
+        </div>
       </div>
 
       {/* Render the Client Component with the fetched data */}
-      <div className="px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <GalleryClient items={galleryItems} categories={uniqueCategories} />
       </div>
 

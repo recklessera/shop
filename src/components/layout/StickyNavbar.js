@@ -55,6 +55,8 @@ export default function StickyNavbar() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex space-x-8">
+            {/* ADDED: Home Link */}
+            <Link href="/" className="text-white hover:text-brand-primary transition-colors font-medium">Home</Link>
             <Link href="/shop" className="text-white hover:text-brand-primary transition-colors font-medium">Shop</Link>
             <Link href="/collections" className="text-white hover:text-brand-primary transition-colors font-medium">Collections</Link>
             <Link href="/lookbook" className="text-white hover:text-brand-primary transition-colors font-medium">Lookbook</Link>
@@ -84,6 +86,8 @@ export default function StickyNavbar() {
       {isMobileMenuOpen && (
         <nav className="md:hidden bg-brand-secondary border-t border-gray-800">
           <div className="px-4 pt-2 pb-4 space-y-1 flex flex-col">
+            {/* ADDED: Home Link for Mobile */}
+            <Link onClick={() => setIsMobileMenuOpen(false)} href="/" className="text-white hover:text-brand-primary block px-3 py-2 font-medium">Home</Link>
             <Link onClick={() => setIsMobileMenuOpen(false)} href="/shop" className="text-white hover:text-brand-primary block px-3 py-2 font-medium">Shop</Link>
             <Link onClick={() => setIsMobileMenuOpen(false)} href="/collections" className="text-white hover:text-brand-primary block px-3 py-2 font-medium">Collections</Link>
             <Link onClick={() => setIsMobileMenuOpen(false)} href="/lookbook" className="text-white hover:text-brand-primary block px-3 py-2 font-medium">Lookbook</Link>

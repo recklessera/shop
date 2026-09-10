@@ -45,9 +45,9 @@ export const metadata = {
     siteName: "Reckless Era",
     images: [
       {
-        url: "/og-image.jpg", // We will need to place an image named og-image.jpg in your /public folder!
-        width: 1200,
-        height: 630,
+        url: "/og-image.png", // We will need to place an image named og-image.jpg in your /public folder!
+        width: 1000,
+        height: 700,
         alt: "Reckless Era Cover Image",
       },
     ],

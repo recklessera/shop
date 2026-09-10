@@ -41,14 +41,14 @@ export default function GalleryClient({ items, categories }) {
   return (
     <div className="w-full">
       
-      {/* Category Filters */}
-      <div className="flex flex-wrap justify-center gap-4 mb-12">
+      {/* Category Filters - Left aligned to match header */}
+      <div className="flex flex-wrap justify-start gap-3 mb-10">
         <button
           onClick={() => setActiveCategory("All")}
-          className={`px-6 py-2 text-sm font-bold uppercase tracking-widest transition-all duration-300 border-2 ${
+          className={`px-5 py-2 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-2 ${
             activeCategory === "All" 
-              ? "border-brand-primary bg-brand-primary text-black" 
-              : "border-gray-200 text-gray-500 hover:border-brand-primary hover:text-black"
+              ? "border-black bg-black text-white" 
+              : "border-gray-200 text-gray-500 hover:border-black hover:text-black"
           }`}
         >
           All
@@ -58,10 +58,10 @@ export default function GalleryClient({ items, categories }) {
             <button
               key={category}
               onClick={() => setActiveCategory(category)}
-              className={`px-6 py-2 text-sm font-bold uppercase tracking-widest transition-all duration-300 border-2 ${
+              className={`px-5 py-2 text-xs font-bold uppercase tracking-widest transition-all duration-300 border-2 ${
                 activeCategory === category 
-                  ? "border-brand-primary bg-brand-primary text-black" 
-                  : "border-gray-200 text-gray-500 hover:border-brand-primary hover:text-black"
+                  ? "border-black bg-black text-white" 
+                  : "border-gray-200 text-gray-500 hover:border-black hover:text-black"
               }`}
             >
               {category}
@@ -72,29 +72,32 @@ export default function GalleryClient({ items, categories }) {
 
       {/* Masonry Grid (CSS-only via Tailwind Columns) */}
       {filteredItems.length === 0 ? (
-        <div className="text-center py-20 text-gray-500 italic">No images found for this category.</div>
+        <div className="text-left py-20 text-gray-500 font-bold uppercase tracking-widest text-xs">
+          No images found for this category.
+        </div>
       ) : (
-        <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6 max-w-7xl mx-auto">
+        /* FIXED: columns-2 for mobile, removed space-y, adjusted gaps */
+        <div className="columns-2 md:columns-3 lg:columns-4 gap-3 md:gap-6 w-full">
           {filteredItems.map((item) => (
             <div 
               key={item.id} 
-              className="break-inside-avoid relative group cursor-pointer overflow-hidden rounded-xl bg-gray-100"
+              // FIXED: Added mb-3/mb-6 here instead of space-y on parent. Sharpened corners.
+              className="break-inside-avoid relative group cursor-pointer overflow-hidden rounded-sm bg-gray-100 mb-3 md:mb-6"
               onClick={() => setSelectedImage(item)}
             >
-              {/* Note: We don't use 'fill' here so the images dictate their own natural height for the masonry effect */}
               <Image
                 src={item.image_url}
                 alt={item.caption || "Gallery Image"}
                 width={800}
                 height={1000}
                 className="w-full h-auto object-cover transition-transform duration-700 group-hover:scale-105"
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               />
               
               {/* Hover Overlay */}
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-6">
-                {item.category && <span className="text-brand-primary text-xs font-bold uppercase tracking-widest mb-1">{item.category}</span>}
-                {item.caption && <p className="text-white font-medium">{item.caption}</p>}
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 md:p-6 text-left">
+                {item.category && <span className="text-white text-[10px] font-bold uppercase tracking-widest mb-1">{item.category}</span>}
+                {item.caption && <p className="text-white text-xs md:text-sm font-medium">{item.caption}</p>}
               </div>
             </div>
           ))}
@@ -109,7 +112,7 @@ export default function GalleryClient({ items, categories }) {
         >
           {/* Close Button */}
           <button 
-            className="absolute top-6 right-6 text-white hover:text-brand-primary transition-colors z-50"
+            className="absolute top-6 right-6 text-white hover:text-gray-400 transition-colors z-50"
             onClick={() => setSelectedImage(null)}
           >
             <X className="w-8 h-8" />
@@ -117,17 +120,17 @@ export default function GalleryClient({ items, categories }) {
 
           {/* Navigation Arrows */}
           <button 
-            className="absolute left-4 md:left-12 text-white hover:text-brand-primary p-4 transition-colors z-50"
+            className="absolute left-2 md:left-12 text-white hover:text-gray-400 p-2 md:p-4 transition-colors z-50"
             onClick={handlePrev}
           >
-            <ChevronLeft className="w-10 h-10 md:w-12 md:h-12" />
+            <ChevronLeft className="w-8 h-8 md:w-12 md:h-12" />
           </button>
           
           <button 
-            className="absolute right-4 md:right-12 text-white hover:text-brand-primary p-4 transition-colors z-50"
+            className="absolute right-2 md:right-12 text-white hover:text-gray-400 p-2 md:p-4 transition-colors z-50"
             onClick={handleNext}
           >
-            <ChevronRight className="w-10 h-10 md:w-12 md:h-12" />
+            <ChevronRight className="w-8 h-8 md:w-12 md:h-12" />
           </button>
 
           {/* Main Image */}
@@ -137,14 +140,14 @@ export default function GalleryClient({ items, categories }) {
               alt={selectedImage.caption || "Full screen image"}
               width={1200}
               height={1200}
-              className="w-auto h-auto max-w-full max-h-[75vh] object-contain shadow-2xl rounded-md"
+              className="w-auto h-auto max-w-full max-h-[75vh] object-contain shadow-2xl rounded-sm"
               priority
             />
             {/* Caption in Lightbox */}
             {(selectedImage.caption || selectedImage.category) && (
               <div className="text-center mt-6">
-                {selectedImage.category && <p className="text-brand-primary text-sm font-bold uppercase tracking-widest mb-2">{selectedImage.category}</p>}
-                {selectedImage.caption && <p className="text-gray-300 text-lg">{selectedImage.caption}</p>}
+                {selectedImage.category && <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest mb-2">{selectedImage.category}</p>}
+                {selectedImage.caption && <p className="text-white text-sm md:text-base tracking-wide">{selectedImage.caption}</p>}
               </div>
             )}
           </div>

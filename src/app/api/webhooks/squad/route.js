@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import crypto from 'crypto';
 import { Resend } from 'resend';
 import OrderReceiptEmail from '@/components/emails/OrderReceiptEmail';
+import AdminNewOrderEmail from '@/components/emails/AdminNewOrderEmail';
 
 // Initialize Resend
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -94,22 +95,39 @@ export async function POST(req) {
       
       if (customerEmail) {
         const { error: emailError } = await resend.emails.send({
-          from: `Reckless Era <${process.env.NEXT_PUBLIC_STORE_EMAIL}>`, 
+          from: `Reckless Era <${process.env.NEXT_PUBLIC_STORE_EMAIL || 'orders@recklessera.com'}>`, 
           to: [customerEmail],
           subject: `Order Confirmed: #${order.id.slice(0, 8).toUpperCase()}`,
-          react: OrderReceiptEmail({ 
-            firstName: address.firstName || 'Customer', 
-            orderId: order.id, 
-            total: order.total_amount,
-            method: address.method || 'Standard',
-            cost: address.cost || 0
-          }),
+          react: <OrderReceiptEmail 
+            firstName={address.firstName || 'Customer'} 
+            orderId={order.id} 
+            total={order.total_amount}
+            method={address.method || 'Standard'}
+            cost={address.cost || 0}
+          />
         });
 
         if (emailError) {
-          console.error('Resend Error:', emailError);
-          // We don't throw an error here because the payment and inventory succeeded.
+          console.error('Customer Resend Error:', emailError);
         }
+      }
+
+      // FIXED: Moved the Admin Email inside the success block!
+      const { error: adminEmailError } = await resend.emails.send({
+        from: `Reckless System <${process.env.NEXT_PUBLIC_STORE_EMAIL || 'orders@recklessera.com'}>`, 
+        to: ['recklesseraclothing@gmail.com'], 
+        subject: `🚨 NEW ORDER: ₦${order.total_amount.toLocaleString()}`,
+        react: <AdminNewOrderEmail 
+          orderId={order.id} 
+          total={order.total_amount}
+          customerEmail={customerEmail || 'Unknown'}
+          address={address}
+          items={order.items}
+        />
+      });
+
+      if (adminEmailError) {
+        console.error('Admin Resend Error:', adminEmailError);
       }
 
       console.log(`Webhook successfully processed order: ${order.id}`);
