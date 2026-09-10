@@ -51,7 +51,7 @@ export default async function CollectionsPage() {
           {(featuredCollection.banner_image_url || featuredCollection.cover_image_url) ? (
             <Image 
               src={featuredCollection.banner_image_url || featuredCollection.cover_image_url}
-              alt={featuredcollection.title}
+              alt={featuredCollection.title}
               fill
               className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 opacity-80 group-hover:opacity-60"
               priority
@@ -66,7 +66,7 @@ export default async function CollectionsPage() {
               Latest Drop
             </span>
             <h2 className="text-4xl md:text-6xl font-bold uppercase tracking-tighter text-white mb-6">
-              {featuredcollection.title}
+              {featuredCollection.title}
             </h2>
             {featuredCollection.description && (
               <p className="text-white/90 text-sm md:text-base max-w-md mx-auto mb-8 hidden md:block">
