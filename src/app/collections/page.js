@@ -9,7 +9,6 @@ export const metadata = {
 
 export default async function CollectionsPage() {
   // Fetch all collections from your database.
-  // Using id: 'desc' as a fallback to get the most recently added collections first.
   const collections = await prisma.collection.findMany({
     orderBy: { id: 'desc' },
   });
@@ -44,10 +43,10 @@ export default async function CollectionsPage() {
         
         {/* 1. FEATURED HERO COLLECTION */}
         <Link 
-          href={`/shop?collection=${featuredCollection.id}`}
+          // FIXED: Now passes the exact title to match the grid below, preventing empty shop filters
+          href={`/shop?collection=${encodeURIComponent(featuredCollection.title)}`}
           className="block relative w-full h-[60vh] md:h-[75vh] group overflow-hidden bg-black"
         >
-          {/* Defensive Image Logic: Prefer Banner -> Fallback to Cover -> Fallback to Black Background */}
           {(featuredCollection.banner_image_url || featuredCollection.cover_image_url) ? (
             <Image 
               src={featuredCollection.banner_image_url || featuredCollection.cover_image_url}
@@ -60,7 +59,6 @@ export default async function CollectionsPage() {
             <div className="absolute inset-0 bg-brand-secondary opacity-90" />
           )}
 
-          {/* Featured Text Content */}
           <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 transition-transform duration-500">
             <span className="text-white/80 uppercase tracking-[0.3em] text-[10px] font-bold mb-4">
               Latest Drop
@@ -85,10 +83,10 @@ export default async function CollectionsPage() {
             {gridCollections.map((collection) => (
               <Link 
                 key={collection.id}
+                // Standardized URL param
                 href={`/shop?collection=${encodeURIComponent(collection.title)}`}
                 className="block relative w-full aspect-[4/5] group overflow-hidden bg-black"
               >
-                {/* Defensive Image Logic: Prefer Cover -> Fallback to Banner -> Fallback to Black Background */}
                 {(collection.cover_image_url || collection.banner_image_url) ? (
                   <Image 
                     src={collection.cover_image_url || collection.banner_image_url}
@@ -97,10 +95,9 @@ export default async function CollectionsPage() {
                     className="object-cover transition-transform duration-700 ease-out group-hover:scale-105 opacity-70 group-hover:opacity-50"
                   />
                 ) : (
-                  <div className="absolute inset-0 bg-sidebar-bg opacity-90" />
+                  <div className="absolute inset-0 bg-gray-900 opacity-90" />
                 )}
 
-                {/* Grid Text Content */}
                 <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6">
                   <h3 className="text-3xl md:text-4xl font-bold uppercase tracking-tighter text-white mb-6 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                     {collection.title}

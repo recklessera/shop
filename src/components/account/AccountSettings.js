@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { updatePrismaProfile } from "@/app/account/actions";
+import { useSearchParams } from "next/navigation"; // 1. ADD THIS IMPORT
 
-// --- NEW: Added the states array to ensure consistency with checkout ---
 const NIGERIAN_STATES = [
   "Abia", "Adamawa", "Akwa Ibom", "Anambra", "Bauchi", "Bayelsa", "Benue", "Borno", "Cross River",
   "Delta", "Ebonyi", "Edo", "Ekiti", "Enugu", "FCT - Abuja", "Gombe", "Imo", "Jigawa", "Kaduna",
@@ -14,7 +14,12 @@ const NIGERIAN_STATES = [
 
 export default function AccountSettings({ dbUser, authUser }) {
   const supabase = createClient();
-  const [activeTab, setActiveTab] = useState("profile");
+  const searchParams = useSearchParams(); // 2. INITIALIZE HOOK
+  
+  // 3. CHECK THE URL TO SET THE INITIAL TAB
+  const initialTab = searchParams.get("tab") === "security" ? "security" : "profile";
+  const [activeTab, setActiveTab] = useState(initialTab);
+  
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ text: "", type: "" });
 
@@ -22,7 +27,6 @@ export default function AccountSettings({ dbUser, authUser }) {
   const [name, setName] = useState(dbUser?.name || "");
   const [phone, setPhone] = useState(dbUser?.phone_number || "");
   
-  // --- NEW: Handle address as an object, not a JSON string ---
   const [address, setAddress] = useState({
     street: dbUser?.saved_addresses?.street || "",
     city: dbUser?.saved_addresses?.city || "",

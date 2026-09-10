@@ -107,6 +107,10 @@ model Order {
   squad_transaction_ref String?    
   created_at            DateTime    @default(now())
   items                 OrderItem[]
+  // NEW: Shipping Info
+  courier_name    String?   // e.g., "GIG Logistics", "DHL", "Personal Rider"
+  tracking_number String?   // The tracking code or rider's phone number
+  shipping_notes  String?   // Any extra instructions
 }
 
 model OrderItem {

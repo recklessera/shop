@@ -13,7 +13,6 @@ export default function AuthForm() {
   const [loading, setLoading] = useState(false);
   
   const [error, setError] = useState(null);
-  // --- NEW: State for success messages ---
   const [successMessage, setSuccessMessage] = useState(null); 
   
   const router = useRouter();
@@ -25,7 +24,8 @@ export default function AuthForm() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: provider,
       options: {
-        redirectTo: `${window.location.origin}/auth/callback`, 
+        // UPDATED: Point to callback route and tell it where to go next
+        redirectTo: `${window.location.origin}/auth/callback?next=/account`, 
       },
     });
 
@@ -45,8 +45,15 @@ export default function AuthForm() {
         if (error) throw error;
         router.refresh(); 
       } else {
-        // SIGNUP FLOW
-        const { error } = await supabase.auth.signUp({ email, password });
+        // SIGNUP FLOW (UPDATED)
+        const { error } = await supabase.auth.signUp({ 
+          email, 
+          password,
+          options: {
+            // UPDATED: This forces the email link to hit your callback route first!
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=/account`,
+          }
+        });
         if (error) throw error;
         
         // Show success message, clear form, and switch to Login view
@@ -72,9 +79,11 @@ export default function AuthForm() {
     setError(null);
     setSuccessMessage(null);
     
+    // FORGOT PASSWORD FLOW (UPDATED)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/account/update-password`,
-    });
+      // CHANGED: Point to the account page and pass a URL parameter
+        redirectTo: `${window.location.origin}/auth/callback?next=/account?tab=security`,
+      });
 
     if (error) {
       setError(error.message);
@@ -165,7 +174,6 @@ export default function AuthForm() {
             </button>
           </div>
           
-          {/* UPDATED: Only show Forgot Password on Login */}
           {isLogin && (
             <button 
               type="button" 

@@ -32,6 +32,7 @@ export async function updatePrismaProfile(userId, formData) {
     return { error: "Failed to update profile information." };
   }
 }
+
 export async function cancelPendingOrder(orderId) {
   try {
     // 1. Check if the order exists and is actually pending
@@ -43,14 +44,15 @@ export async function cancelPendingOrder(orderId) {
       return { error: "Only pending orders can be cancelled." };
     }
 
-    // 2. Update the status
+    // 2. Update the status (FIXED: changed to lowercase to match your DB standards)
     await prisma.order.update({
       where: { id: orderId },
-      data: { status: "CANCELLED" }
+      data: { status: "cancelled" } 
     });
 
-    // 3. Refresh the account page
+    // 3. Refresh both the account page and the admin orders page
     revalidatePath("/account");
+    revalidatePath('/admin/orders'); 
     return { success: true };
   } catch (error) {
     console.error(error);

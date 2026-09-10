@@ -19,7 +19,8 @@ export default function CollectionGrid({ collections }) {
               Curated Chapters of the Era
             </p>
           </div>
-          <Link href="/shop" className="text-xs font-bold uppercase tracking-[0.2em] border-b-2 border-black pb-1 hover:text-brand-gold hover:border-brand-gold transition-all">
+          {/* UPDATED: Now points to the Collections index */}
+          <Link href="/collections" className="text-xs font-bold uppercase tracking-[0.2em] border-b-2 border-black pb-1 hover:text-brand-gold hover:border-brand-gold transition-all">
             Explore All
           </Link>
         </div>
@@ -29,22 +30,23 @@ export default function CollectionGrid({ collections }) {
           {latestCollections.map((collection) => (
             <Link 
               key={collection.id} 
-              href={`/shop?collection=${encodeURIComponent(collection.title)}`} // Directs to filtered shop
+              // UPDATED: Now points to the Collections index instead of the Shop filter
+              href="/collections" 
               className="group relative flex flex-col"
             >
               {/* Folder Tab Effect */}
-              <div className="w-1/2 h-6 bg-gray-100 rounded-t-lg transition-colors group-hover:bg-brand-primary" 
+              <div className="w-1/2 h-6 bg-gray-100 rounded-t-lg transition-colors group-hover:bg-black" 
                    style={{ clipPath: 'polygon(0 0, 85% 0, 100% 100%, 0% 100%)' }} 
               />
 
               {/* Main Folder Body */}
-              <div className="relative h-[450px] w-full overflow-hidden shadow-sm group-hover:shadow-2xl transition-all duration-500 border border-gray-100">
+              <div className="relative h-[450px] w-full overflow-hidden shadow-sm group-hover:shadow-2xl transition-all duration-500 border border-gray-100 bg-black">
                 {collection.cover_image_url ? (
                   <Image
                     src={collection.cover_image_url}
                     alt={collection.title}
                     fill
-                    className="object-cover object-center transition-transform duration-1000 group-hover:scale-110"
+                    className="object-cover object-center transition-transform duration-1000 group-hover:scale-110 opacity-90 group-hover:opacity-70"
                     sizes="(max-width: 768px) 100vw, 33vw"
                   />
                 ) : (
@@ -59,8 +61,8 @@ export default function CollectionGrid({ collections }) {
                 {/* Text Content */}
                 <div className="absolute inset-x-0 bottom-0 p-8">
                   <div className="flex items-center gap-4 mb-2 overflow-hidden">
-                    <div className="h-[1px] w-8 bg-brand-gold transition-transform duration-500 -translate-x-12 group-hover:translate-x-0" />
-                    <span className="text-[10px] text-brand-gold font-black uppercase tracking-[0.3em]">
+                    <div className="h-[1px] w-8 bg-white transition-transform duration-500 -translate-x-12 group-hover:translate-x-0" />
+                    <span className="text-[10px] text-white font-black uppercase tracking-[0.3em]">
                       Collection
                     </span>
                   </div>
@@ -70,12 +72,12 @@ export default function CollectionGrid({ collections }) {
                 </div>
               </div>
 
-              {/* Folder Footer (Optional Detail) */}
+              {/* Folder Footer */}
               <div className="mt-4 flex justify-between items-center px-1">
-                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-black transition-colors">
                   View Series
                 </span>
-                <div className="h-2 w-2 bg-gray-200 rounded-full group-hover:bg-brand-gold transition-colors" />
+                <div className="h-2 w-2 bg-gray-200 rounded-full group-hover:bg-black transition-colors" />
               </div>
             </Link>
           ))}

@@ -1,3 +1,4 @@
+import { Suspense } from 'react'; // 1. ADDED THIS IMPORT
 import { createClient } from '@/utils/supabase/server';
 import { prisma } from '@/lib/prisma';
 import AuthForm from '@/components/account/AuthForm';
@@ -24,7 +25,6 @@ export default async function AccountPage() {
   }
 
   // 2. Fetch or Create the Prisma User record
-  // (Ensures relational data doesn't break if this is their first login)
   let dbUser = await prisma.user.findUnique({
     where: { email: authUser.email }
   });
@@ -108,11 +108,11 @@ export default async function AccountPage() {
                         </div>
                       ))}
                       {/* NEW: Cancel Button for Pending Orders */}
-                          {order.status === "pending" && (
-                            <div className="border-t border-gray-100 mt-4 pt-4">
-                              <CancelOrderButton orderId={order.id} />
-                            </div>
-                          )}
+                      {order.status === "pending" && (
+                        <div className="border-t border-gray-100 mt-4 pt-4">
+                          <CancelOrderButton orderId={order.id} />
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -124,8 +124,10 @@ export default async function AccountPage() {
           <div className="col-span-1 flex flex-col space-y-6 h-fit">
             <h2 className="text-lg font-bold uppercase tracking-widest border-b border-gray-200 pb-4">Account Settings</h2>
             
-            {/* The interactive management component */}
-            <AccountSettings dbUser={dbUser} authUser={authUser} />
+            {/* 2. WRAPPED IN SUSPENSE */}
+            <Suspense fallback={<div className="bg-white p-6 border border-gray-200 text-sm text-gray-500">Loading settings...</div>}>
+              <AccountSettings dbUser={dbUser} authUser={authUser} />
+            </Suspense>
 
             <div className="bg-white p-6 border border-gray-200">
               <form action="/auth/signout" method="post">
