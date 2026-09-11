@@ -108,7 +108,7 @@ export default function OrderShippedEmail({
             {/* Footer */}
             <Section className="border-line" style={{ textAlign: 'center', marginTop: '40px', borderTop: '1px solid #eaeaea', paddingTop: '20px' }}>
               <Text className="text-muted" style={{ fontSize: '12px', color: '#666', lineHeight: '1.5', margin: '0 0 8px' }}>
-                If you have any issues with your delivery, reply directly to this email or reach out to us on our official channels.
+                If you have any issues with your delivery, reach out to us at customercare@recklessera.com.
               </Text>
               <Text className="text-muted" style={{ fontSize: '12px', color: '#666', lineHeight: '1.5', margin: '0 0 8px' }}>
                 &copy; {new Date().getFullYear()} Reckless Era. All rights reserved.

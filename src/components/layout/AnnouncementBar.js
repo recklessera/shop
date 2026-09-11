@@ -22,10 +22,10 @@ export default function AnnouncementBar() {
       {/* 2. The scrolling container */}
       <div className="animate-marquee flex whitespace-nowrap w-max">
         {/* We repeat the text to create a seamless infinite loop */}
-        <span className="px-8 md:px-16">Free Shipping in Lagos (use the discount code "Rebirth26")</span>
-        <span className="px-8 md:px-16">Free Shipping in Lagos (use the discount code "Rebirth26")</span>
-        <span className="px-8 md:px-16">Free Shipping in Lagos (use the discount code "Rebirth26")</span>
-        <span className="px-8 md:px-16">Free Shipping in Lagos (use the discount code "Rebirth26")</span>
+        <span className="px-8 md:px-16">Free Shipping in Lagos on all Pre-orders</span>
+        <span className="px-8 md:px-16">Free Shipping in Lagos on all Pre-orders</span>
+        <span className="px-8 md:px-16">Free Shipping in Lagos on all Pre-orders</span>
+        <span className="px-8 md:px-16">Free Shipping in Lagos on all Pre-orders</span>
       </div>
       
     </div>

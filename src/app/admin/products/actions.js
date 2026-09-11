@@ -11,7 +11,7 @@ cloudinary.config({
 })
 
 /**
- * Delete an image from Cloudinary using its secure URL.
+ * Delete an image from Cloudinary using its URL.
  */
 async function deleteFromCloudinary(imageUrl) {
   if (!imageUrl) return
@@ -21,9 +21,9 @@ async function deleteFromCloudinary(imageUrl) {
 
     if (!uploadPart) return
 
-    // Remove Cloudinary version prefix, e.g. v123456789/
+    // Remove Cloudinary version, e.g. v1234567890/
     const pathWithoutVersion = uploadPart.replace(
-      /^v\d+\/?/,
+      /^v\d+\//,
       ''
     )
 
@@ -54,28 +54,18 @@ async function deleteFromCloudinary(imageUrl) {
 }
 
 /**
- * CREATE PRODUCT
- *
- * IMPORTANT:
- * This action now receives image URLs only.
- *
- * The actual image files are uploaded directly
- * from the browser to Cloudinary.
+ * Create a new product.
  */
 export async function createProduct(formData) {
-  const title = formData.get('title')
-  const description = formData.get('description')
+  const title = formData.get('title')?.toString().trim()
+  const description = formData.get('description')?.toString().trim()
   const price = parseFloat(formData.get('price'))
-  const collection_id = formData.get('collection_id')
+  const collection_id = formData.get('collection_id')?.toString()
   const is_published =
     formData.get('is_published') === 'on'
 
-  const variantsString =
-    formData.get('variants')
-
-  const imageUrlsString =
-    formData.get('imageUrls')
-
+  const variantsString = formData.get('variants')
+  const imageUrlsString = formData.get('imageUrls')
   const primaryIndex =
     parseInt(formData.get('primaryIndex'), 10) || 0
 
@@ -84,24 +74,31 @@ export async function createProduct(formData) {
   }
 
   if (!description) {
+    throw new Error('Product description is required.')
+  }
+
+  if (Number.isNaN(price) || price < 0) {
     throw new Error(
-      'Product description is required.'
+      'A valid product price is required.'
     )
   }
 
-  if (Number.isNaN(price)) {
-    throw new Error('A valid product price is required.')
-  }
-
   if (!collection_id) {
-    throw new Error('Please select a collection.')
+    throw new Error(
+      'Please select a collection.'
+    )
   }
 
+  /**
+   * Parse variants.
+   */
   let parsedVariants = []
 
   if (variantsString) {
     try {
-      parsedVariants = JSON.parse(variantsString)
+      parsedVariants = JSON.parse(
+        variantsString.toString()
+      )
     } catch {
       throw new Error(
         'Invalid product variant data.'
@@ -109,11 +106,16 @@ export async function createProduct(formData) {
     }
   }
 
+  /**
+   * Parse image URLs.
+   */
   let imageUrls = []
 
   if (imageUrlsString) {
     try {
-      imageUrls = JSON.parse(imageUrlsString)
+      imageUrls = JSON.parse(
+        imageUrlsString.toString()
+      )
     } catch {
       throw new Error(
         'Invalid product image data.'
@@ -121,31 +123,117 @@ export async function createProduct(formData) {
     }
   }
 
-  // Only accept actual strings that look like URLs.
   imageUrls = imageUrls.filter(
-    url =>
+    (url) =>
       typeof url === 'string' &&
       url.startsWith('https://')
   )
 
-  const variantsData = parsedVariants.map(v => ({
-    sku: v.sku,
-    size: v.size || null,
-    color: v.color || null,
-    stock_count:
-      parseInt(v.stock_count, 10) || 0,
-    price:
-      v.price && v.price !== ''
-        ? parseFloat(v.price)
+  /**
+   * Prepare variants.
+   */
+  const variantsData = parsedVariants.map((variant) => {
+    const variantPrice =
+      variant.price !== undefined &&
+      variant.price !== null &&
+      variant.price !== ''
+        ? parseFloat(variant.price)
         : null
-  }))
 
+    return {
+      sku: variant.sku?.toString().trim(),
+      size: variant.size
+        ? variant.size.toString().trim()
+        : null,
+      color: variant.color
+        ? variant.color.toString().trim()
+        : null,
+      stock_count:
+        parseInt(variant.stock_count, 10) || 0,
+      price:
+        variantPrice !== null &&
+        !Number.isNaN(variantPrice)
+          ? variantPrice
+          : null
+    }
+  })
+
+  /**
+   * Validate SKUs.
+   */
+  const invalidSku = variantsData.find(
+    (variant) => !variant.sku
+  )
+
+  if (invalidSku) {
+    throw new Error(
+      'All product variants must have a SKU.'
+    )
+  }
+
+  /**
+   * Prevent duplicate SKUs inside this product.
+   */
+  const skuSet = new Set()
+
+  for (const variant of variantsData) {
+    if (skuSet.has(variant.sku)) {
+      throw new Error(
+        `Duplicate SKU detected: ${variant.sku}`
+      )
+    }
+
+    skuSet.add(variant.sku)
+  }
+
+  /**
+   * Generate slug.
+   */
   const slug = title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)+/g, '')
 
   try {
+    /**
+     * Make sure the slug isn't already used.
+     */
+    const existingSlug =
+      await prisma.product.findUnique({
+        where: { slug }
+      })
+
+    if (existingSlug) {
+      throw new Error(
+        'A product with this title already exists. Please use a different title.'
+      )
+    }
+
+    /**
+     * Make sure SKUs don't already exist.
+     */
+    if (variantsData.length > 0) {
+      const existingVariants =
+        await prisma.productVariant.findMany({
+          where: {
+            sku: {
+              in: variantsData.map(
+                (variant) => variant.sku
+              )
+            }
+          },
+          select: {
+            sku: true
+          }
+        })
+
+      if (existingVariants.length > 0) {
+        throw new Error(
+          `SKU already exists: ${existingVariants[0].sku}`
+        )
+      }
+    }
+
     const productData = {
       title,
       slug,
@@ -153,22 +241,28 @@ export async function createProduct(formData) {
       price,
       collection_id,
       is_published,
-
       variants: {
         create: variantsData
       }
     }
 
+    /**
+     * Attach uploaded Cloudinary images.
+     */
     if (imageUrls.length > 0) {
+      const safePrimaryIndex =
+        primaryIndex >= 0 &&
+        primaryIndex < imageUrls.length
+          ? primaryIndex
+          : 0
+
       productData.images = {
-        create: imageUrls.map(
-          (url, index) => ({
-            image_url: url,
-            alt_text: title,
-            is_primary:
-              index === primaryIndex
-          })
-        )
+        create: imageUrls.map((url, index) => ({
+          image_url: url,
+          alt_text: title,
+          is_primary:
+            index === safePrimaryIndex
+        }))
       }
     }
 
@@ -177,6 +271,9 @@ export async function createProduct(formData) {
     })
 
     revalidatePath('/admin/products')
+    revalidatePath('/shop')
+    revalidatePath('/')
+
   } catch (error) {
     console.error(
       'RAW PRODUCT CREATION ERROR:',
@@ -185,89 +282,263 @@ export async function createProduct(formData) {
 
     throw new Error(
       `Product Creation Failed: ${
-        error.message ||
-        JSON.stringify(error)
+        error instanceof Error
+          ? error.message
+          : JSON.stringify(error)
       }`
     )
   }
 }
 
 /**
- * DELETE PRODUCT
+ * Delete a product.
+ *
+ * Products linked to existing orders cannot be deleted
+ * because doing so would destroy historical order data.
  */
 export async function deleteProduct(formData) {
-  const id = formData.get('id')
+  const id = formData.get('id')?.toString()
 
   if (!id) {
-    throw new Error('Product ID is required.')
+    throw new Error(
+      'Product ID is required.'
+    )
   }
 
   try {
-    const product =
-      await prisma.product.findUnique({
-        where: { id },
-        include: { images: true }
+    /**
+     * Protect historical orders.
+     */
+    const orderItemCount =
+      await prisma.orderItem.count({
+        where: {
+          product_id: id
+        }
       })
 
-    if (
-      product &&
-      product.images.length > 0
-    ) {
-      const deletePromises =
-        product.images.map(
-          img =>
-            deleteFromCloudinary(
-              img.image_url
-            )
-        )
-
-      await Promise.all(deletePromises)
+    if (orderItemCount > 0) {
+      throw new Error(
+        'This product cannot be deleted because it is linked to existing orders. Unpublish it instead to preserve your order history.'
+      )
     }
 
+    /**
+     * Get product and images before deleting.
+     */
+    const product =
+      await prisma.product.findUnique({
+        where: {
+          id
+        },
+        include: {
+          images: true
+        }
+      })
+
+    if (!product) {
+      throw new Error(
+        'Product not found.'
+      )
+    }
+
+    /**
+     * Delete the database record first.
+     *
+     * Product variants and images use onDelete: Cascade,
+     * so the related database records will be removed too.
+     */
     await prisma.product.delete({
-      where: { id }
+      where: {
+        id
+      }
     })
 
+    /**
+     * Remove Cloudinary images after the DB
+     * deletion succeeds.
+     */
+    if (product.images.length > 0) {
+      await Promise.all(
+        product.images.map((image) =>
+          deleteFromCloudinary(
+            image.image_url
+          )
+        )
+      )
+    }
+
     revalidatePath('/admin/products')
+    revalidatePath('/shop')
+    revalidatePath('/')
+
   } catch (error) {
     console.error(
       'Product deletion error:',
       error
     )
 
+    if (
+      error instanceof Error &&
+      error.message.includes(
+        'linked to existing orders'
+      )
+    ) {
+      throw error
+    }
+
     throw new Error(
-      'Failed to delete product.'
+      `Failed to delete product: ${
+        error instanceof Error
+          ? error.message
+          : 'Unknown error'
+      }`
     )
   }
 }
 
 /**
- * UPDATE PRODUCT
+ * Update an existing product.
+ *
+ * Handles:
+ * - Product information
+ * - Price
+ * - Collection
+ * - Publish / Unpublish
+ * - Existing variants
+ * - New variants
+ * - Safe variant ownership checks
  */
 export async function updateProduct(formData) {
-  const id = formData.get('id')
-  const title = formData.get('title')
-  const description = formData.get('description')
-  const price = parseFloat(formData.get('price'))
-  const collection_id =
-    formData.get('collection_id')
+  const id = formData.get('id')?.toString()
+  const title = formData
+    .get('title')
+    ?.toString()
+    .trim()
+  const description = formData
+    .get('description')
+    ?.toString()
+    .trim()
+  const price = parseFloat(
+    formData.get('price')
+  )
+  const collection_id = formData
+    .get('collection_id')
+    ?.toString()
 
+  /**
+   * IMPORTANT:
+   *
+   * The EditProductForm sends:
+   *
+   * is_published = "on"
+   *
+   * when the product is published.
+   *
+   * If unchecked, the field doesn't contain "on",
+   * so this correctly becomes false.
+   */
   const is_published =
     formData.get('is_published') === 'on'
 
   if (!id) {
-    throw new Error('Product ID is required.')
+    throw new Error(
+      'Product ID is required.'
+    )
   }
 
+  if (!title) {
+    throw new Error(
+      'Product title is required.'
+    )
+  }
+
+  if (!description) {
+    throw new Error(
+      'Product description is required.'
+    )
+  }
+
+  if (Number.isNaN(price) || price < 0) {
+    throw new Error(
+      'A valid product price is required.'
+    )
+  }
+
+  if (!collection_id) {
+    throw new Error(
+      'Please select a collection.'
+    )
+  }
+
+  /**
+   * Check that the product exists.
+   */
+  const existingProduct =
+    await prisma.product.findUnique({
+      where: {
+        id
+      },
+      include: {
+        variants: {
+          include: {
+            orderItems: {
+              select: {
+                id: true
+              }
+            }
+          }
+        }
+      }
+    })
+
+  if (!existingProduct) {
+    throw new Error(
+      'Product not found.'
+    )
+  }
+
+  /**
+   * Generate new slug.
+   */
   const slug = title
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)+/g, '')
 
   try {
-    await prisma.product.update({
-      where: { id },
+    /**
+     * Check if another product already uses
+     * this slug.
+     */
+    const slugConflict =
+      await prisma.product.findFirst({
+        where: {
+          slug,
+          NOT: {
+            id
+          }
+        },
+        select: {
+          id: true
+        }
+      })
 
+    if (slugConflict) {
+      throw new Error(
+        'A product with this title already exists. Please use a different title.'
+      )
+    }
+
+    /**
+     * Update the main product information.
+     *
+     * This is where Publish / Unpublish is committed
+     * to the database.
+     */
+    await prisma.product.update({
+      where: {
+        id
+      },
       data: {
         title,
         slug,
@@ -278,6 +549,9 @@ export async function updateProduct(formData) {
       }
     })
 
+    /**
+     * Process variants.
+     */
     const variantsString =
       formData.get('variants')
 
@@ -285,36 +559,169 @@ export async function updateProduct(formData) {
       let parsedVariants
 
       try {
-        parsedVariants =
-          JSON.parse(variantsString)
+        parsedVariants = JSON.parse(
+          variantsString.toString()
+        )
       } catch {
         throw new Error(
           'Invalid variant data.'
         )
       }
 
-      for (const v of parsedVariants) {
+      if (!Array.isArray(parsedVariants)) {
+        throw new Error(
+          'Invalid variant data.'
+        )
+      }
+
+      /**
+       * Validate SKUs before making changes.
+       */
+      const skuSet = new Set()
+
+      for (const variant of parsedVariants) {
+        const sku =
+          variant.sku
+            ?.toString()
+            .trim()
+
+        if (!sku) {
+          throw new Error(
+            'All variants must have a SKU.'
+          )
+        }
+
+        if (skuSet.has(sku)) {
+          throw new Error(
+            `Duplicate SKU detected: ${sku}`
+          )
+        }
+
+        skuSet.add(sku)
+      }
+
+      /**
+       * Get all SKUs currently used by other variants.
+       *
+       * We exclude variants belonging to this product
+       * because those SKUs are allowed to remain unchanged.
+       */
+      const submittedSkus =
+        parsedVariants.map((variant) =>
+          variant.sku
+            .toString()
+            .trim()
+        )
+
+      const conflictingSkuVariants =
+        await prisma.productVariant.findMany({
+          where: {
+            sku: {
+              in: submittedSkus
+            },
+            product_id: {
+              not: id
+            }
+          },
+          select: {
+            sku: true
+          }
+        })
+
+      if (
+        conflictingSkuVariants.length > 0
+      ) {
+        throw new Error(
+          `SKU already exists: ${conflictingSkuVariants[0].sku}`
+        )
+      }
+
+      /**
+       * Track existing variant IDs submitted
+       * by the form.
+       */
+      const submittedExistingVariantIds =
+        new Set()
+
+      /**
+       * Update existing variants or create
+       * new variants.
+       */
+      for (const variant of parsedVariants) {
+        const variantId =
+          typeof variant.id === 'string'
+            ? variant.id
+            : null
+
         const variantData = {
-          sku: v.sku,
-          size: v.size || null,
-          color: v.color || null,
+          sku: variant.sku
+            .toString()
+            .trim(),
+
+          size: variant.size
+            ? variant.size
+                .toString()
+                .trim()
+            : null,
+
+          color: variant.color
+            ? variant.color
+                .toString()
+                .trim()
+            : null,
+
           stock_count:
-            parseInt(v.stock_count, 10) || 0,
+            parseInt(
+              variant.stock_count,
+              10
+            ) || 0,
+
           price:
-            v.price && v.price !== ''
-              ? parseFloat(v.price)
+            variant.price !== undefined &&
+            variant.price !== null &&
+            variant.price !== ''
+              ? parseFloat(
+                  variant.price
+                )
               : null
         }
 
-        if (
-          typeof v.id === 'string' &&
-          v.id.length > 0
-        ) {
+        /**
+         * Existing variant.
+         */
+        if (variantId) {
+          const ownedVariant =
+            existingProduct.variants.find(
+              (existingVariant) =>
+                existingVariant.id ===
+                variantId
+            )
+
+          /**
+           * Never allow the submitted form
+           * to update a variant belonging to
+           * another product.
+           */
+          if (!ownedVariant) {
+            throw new Error(
+              'Invalid product variant.'
+            )
+          }
+
+          submittedExistingVariantIds.add(
+            variantId
+          )
+
           await prisma.productVariant.update({
-            where: { id: v.id },
+            where: {
+              id: variantId
+            },
             data: variantData
           })
         } else {
+          /**
+           * New variant.
+           */
           await prisma.productVariant.create({
             data: {
               ...variantData,
@@ -323,12 +730,55 @@ export async function updateProduct(formData) {
           })
         }
       }
+
+      /**
+       * Handle variants removed from the editor.
+       *
+       * We can safely delete variants that have
+       * never been included in an order.
+       *
+       * Variants that appear in historical orders
+       * are deliberately preserved so that order
+       * history remains intact.
+       */
+      const removedVariants =
+        existingProduct.variants.filter(
+          (existingVariant) =>
+            !submittedExistingVariantIds.has(
+              existingVariant.id
+            )
+        )
+
+      for (const variant of removedVariants) {
+        /**
+         * Never delete a variant referenced by
+         * an existing order.
+         */
+        if (
+          variant.orderItems.length > 0
+        ) {
+          continue
+        }
+
+        await prisma.productVariant.delete({
+          where: {
+            id: variant.id
+          }
+        })
+      }
     }
 
+    /**
+     * Refresh admin and storefront pages.
+     */
     revalidatePath('/admin/products')
+    revalidatePath(`/admin/products/${id}`)
+    revalidatePath('/shop')
+    revalidatePath('/')
     revalidatePath(
-      `/admin/products/${id}`
+      `/products/${existingProduct.slug}`
     )
+
   } catch (error) {
     console.error(
       'RAW PRODUCT UPDATE ERROR:',
@@ -337,8 +787,9 @@ export async function updateProduct(formData) {
 
     throw new Error(
       `Product Update Failed: ${
-        error.message ||
-        JSON.stringify(error)
+        error instanceof Error
+          ? error.message
+          : JSON.stringify(error)
       }`
     )
   }
