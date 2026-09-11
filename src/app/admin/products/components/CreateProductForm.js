@@ -2,83 +2,273 @@
 
 import { useState } from 'react'
 import { createProduct } from '../actions'
-import { Plus, PackagePlus, X, Dices, Trash2 } from 'lucide-react'
+import { Plus, PackagePlus, X, Dices, Trash2, Loader2 } from 'lucide-react'
 
 export default function CreateProductForm({ collections }) {
   const [variants, setVariants] = useState([
-    { id: Date.now(), size: '', color: '', sku: '', stock_count: 0, price: '' }
+    {
+      id: Date.now(),
+      size: '',
+      color: '',
+      sku: '',
+      stock_count: 0,
+      price: ''
+    }
   ])
-  
+
   const [images, setImages] = useState([])
   const [imagePreviews, setImagePreviews] = useState([])
   const [primaryIndex, setPrimaryIndex] = useState(0)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState('')
 
   const addVariant = () => {
-    setVariants([...variants, { id: Date.now(), size: '', color: '', sku: '', stock_count: 0, price: '' }])
+    setVariants([
+      ...variants,
+      {
+        id: Date.now(),
+        size: '',
+        color: '',
+        sku: '',
+        stock_count: 0,
+        price: ''
+      }
+    ])
   }
 
   const removeVariant = (idToRemove) => {
-    if (variants.length === 1) return 
+    if (variants.length === 1) return
+
     setVariants(variants.filter(v => v.id !== idToRemove))
   }
 
   const updateVariant = (id, field, value) => {
-    setVariants(variants.map(v => 
-      v.id === id ? { ...v, [field]: value } : v
-    ))
+    setVariants(
+      variants.map(v =>
+        v.id === id
+          ? { ...v, [field]: value }
+          : v
+      )
+    )
   }
 
   const generateVariantSKU = (id) => {
-    const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase()
+    const randomStr = Math.random()
+      .toString(36)
+      .substring(2, 8)
+      .toUpperCase()
+
     updateVariant(id, 'sku', `RE-${randomStr}`)
   }
 
   const handleImageChange = (e) => {
-    const files = Array.from(e.target.files)
+    const files = Array.from(e.target.files || [])
+
     if (files.length === 0) return
 
-    setImages(prev => [...prev, ...files])
-    
-    const newPreviews = files.map(file => URL.createObjectURL(file))
+    const validFiles = files.filter(file => {
+      if (!file.type.startsWith('image/')) {
+        alert(`${file.name} is not a valid image.`)
+        return false
+      }
+
+      return true
+    })
+
+    if (validFiles.length === 0) return
+
+    setImages(prev => [...prev, ...validFiles])
+
+    const newPreviews = validFiles.map(file =>
+      URL.createObjectURL(file)
+    )
+
     setImagePreviews(prev => [...prev, ...newPreviews])
+
+    // Allow selecting the same file again later
+    e.target.value = ''
   }
 
   const removeImage = (indexToRemove) => {
-    setImages(prev => prev.filter((_, idx) => idx !== indexToRemove))
-    setImagePreviews(prev => prev.filter((_, idx) => idx !== indexToRemove))
-    if (primaryIndex === indexToRemove) setPrimaryIndex(0)
-    if (primaryIndex > indexToRemove) setPrimaryIndex(prev => prev - 1)
+    setImages(prev =>
+      prev.filter((_, idx) => idx !== indexToRemove)
+    )
+
+    setImagePreviews(prev => {
+      const previewToRemove = prev[indexToRemove]
+
+      if (previewToRemove) {
+        URL.revokeObjectURL(previewToRemove)
+      }
+
+      return prev.filter((_, idx) => idx !== indexToRemove)
+    })
+
+    if (primaryIndex === indexToRemove) {
+      setPrimaryIndex(0)
+    }
+
+    if (primaryIndex > indexToRemove) {
+      setPrimaryIndex(prev => prev - 1)
+    }
+  }
+
+  /**
+   * Upload one image directly from the browser to Cloudinary.
+   *
+   * IMPORTANT:
+   * The image itself never goes through a Next.js Server Action.
+   */
+  const uploadImageToCloudinary = async (file) => {
+    // Ask our server for a short-lived Cloudinary signature.
+    const signatureResponse = await fetch('/api/cloudinary/sign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        folder: 'reckless-era/products'
+      })
+    })
+
+    if (!signatureResponse.ok) {
+      const errorData = await signatureResponse.json().catch(() => ({}))
+
+      throw new Error(
+        errorData.error || 'Failed to prepare image upload.'
+      )
+    }
+
+    const {
+      cloudName,
+      apiKey,
+      timestamp,
+      signature,
+      folder
+    } = await signatureResponse.json()
+
+    const cloudinaryFormData = new FormData()
+
+    cloudinaryFormData.append('file', file)
+    cloudinaryFormData.append('api_key', apiKey)
+    cloudinaryFormData.append('timestamp', String(timestamp))
+    cloudinaryFormData.append('signature', signature)
+    cloudinaryFormData.append('folder', folder)
+
+    const uploadResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: cloudinaryFormData
+      }
+    )
+
+    const result = await uploadResponse.json()
+
+    if (!uploadResponse.ok || !result.secure_url) {
+      throw new Error(
+        result.error?.message || 'Cloudinary image upload failed.'
+      )
+    }
+
+    return result.secure_url
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
-    const missingSkus = variants.some(v => !v.sku.trim())
+
+    const missingSkus = variants.some(
+      v => !v.sku.trim()
+    )
+
     if (missingSkus) {
-      alert("All variants must have a SKU.")
+      alert('All variants must have a SKU.')
       return
     }
 
     setIsSubmitting(true)
-
-    const formData = new FormData(e.target)
-    images.forEach(file => formData.append('images', file))
-    formData.append('primaryIndex', primaryIndex)
-    formData.append('variants', JSON.stringify(variants))
+    setUploadProgress('Preparing product...')
 
     try {
+      /*
+       * Upload images DIRECTLY to Cloudinary.
+       *
+       * The large image files never enter the Server Action.
+       */
+      const imageUrls = []
+
+      if (images.length > 0) {
+        for (let i = 0; i < images.length; i++) {
+          setUploadProgress(
+            `Uploading image ${i + 1} of ${images.length}...`
+          )
+
+          const url = await uploadImageToCloudinary(images[i])
+
+          imageUrls.push(url)
+        }
+      }
+
+      setUploadProgress('Creating product...')
+
+      /*
+       * Only send normal form fields + Cloudinary URLs
+       * to the Server Action.
+       */
+      const formData = new FormData(e.currentTarget)
+
+      formData.append(
+        'imageUrls',
+        JSON.stringify(imageUrls)
+      )
+
+      formData.append(
+        'primaryIndex',
+        String(primaryIndex)
+      )
+
+      formData.append(
+        'variants',
+        JSON.stringify(variants)
+      )
+
       await createProduct(formData)
-      e.target.reset()
+
+      // Clean up preview object URLs
+      imagePreviews.forEach(url => {
+        URL.revokeObjectURL(url)
+      })
+
+      e.currentTarget.reset()
+
       setImages([])
       setImagePreviews([])
       setPrimaryIndex(0)
-      setVariants([{ id: Date.now(), size: '', color: '', sku: '', stock_count: 0, price: '' }])
-      alert("Product created successfully!")
+
+      setVariants([
+        {
+          id: Date.now(),
+          size: '',
+          color: '',
+          sku: '',
+          stock_count: 0,
+          price: ''
+        }
+      ])
+
+      setUploadProgress('')
+
+      alert('Product created successfully!')
     } catch (error) {
-      alert(error.message)
+      console.error('Product creation error:', error)
+
+      alert(
+        error?.message ||
+        'Failed to create product.'
+      )
     } finally {
       setIsSubmitting(false)
+      setUploadProgress('')
     }
   }
 
@@ -88,129 +278,244 @@ export default function CreateProductForm({ collections }) {
         <div className="p-2 bg-brand-pink/10 rounded-lg">
           <PackagePlus className="h-5 w-5 text-brand-pink" />
         </div>
+
         Add New Product
       </h3>
-      
-      <form onSubmit={handleSubmit} className="space-y-8">
-        
+
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-8"
+      >
+        {/* PRODUCT DETAILS */}
         <div className="space-y-6">
           <div>
-            <label htmlFor="title" className="block text-sm font-bold text-gray-700 mb-2">Title <span className="text-brand-red">*</span></label>
-            <input type="text" id="title" name="title" required className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all" />
+            <label
+              htmlFor="title"
+              className="block text-sm font-bold text-gray-700 mb-2"
+            >
+              Title <span className="text-brand-red">*</span>
+            </label>
+
+            <input
+              type="text"
+              id="title"
+              name="title"
+              required
+              className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all"
+            />
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="price" className="block text-sm font-bold text-gray-700 mb-2">Base Price (₦) <span className="text-brand-red">*</span></label>
-              <input type="number" step="0.01" id="price" name="price" required className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all" />
+              <label
+                htmlFor="price"
+                className="block text-sm font-bold text-gray-700 mb-2"
+              >
+                Base Price (₦) <span className="text-brand-red">*</span>
+              </label>
+
+              <input
+                type="number"
+                step="0.01"
+                id="price"
+                name="price"
+                required
+                className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all"
+              />
             </div>
+
             <div>
-              <label htmlFor="collection_id" className="block text-sm font-bold text-gray-700 mb-2">Collection <span className="text-brand-red">*</span></label>
-              <select id="collection_id" name="collection_id" required defaultValue="" className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none bg-white transition-all cursor-pointer">
-                <option value="" disabled>Select a collection...</option>
-                {collections.map((collection) => (
-                  <option key={collection.id} value={collection.id}>{collection.title}</option>
+              <label
+                htmlFor="collection_id"
+                className="block text-sm font-bold text-gray-700 mb-2"
+              >
+                Collection <span className="text-brand-red">*</span>
+              </label>
+
+              <select
+                id="collection_id"
+                name="collection_id"
+                required
+                defaultValue=""
+                className="block w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none bg-white transition-all cursor-pointer"
+              >
+                <option value="" disabled>
+                  Select a collection...
+                </option>
+
+                {collections.map(collection => (
+                  <option
+                    key={collection.id}
+                    value={collection.id}
+                  >
+                    {collection.title}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
 
           <div>
-            <label htmlFor="description" className="block text-sm font-bold text-gray-700 mb-2">Description <span className="text-brand-red">*</span></label>
-            <textarea id="description" name="description" required rows="4" className="block w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all resize-none" />
+            <label
+              htmlFor="description"
+              className="block text-sm font-bold text-gray-700 mb-2"
+            >
+              Description <span className="text-brand-red">*</span>
+            </label>
+
+            <textarea
+              id="description"
+              name="description"
+              required
+              rows="4"
+              className="block w-full border border-gray-200 rounded-xl px-4 py-3 text-sm font-medium focus:border-brand-pink focus:ring-1 focus:ring-brand-pink focus:outline-none transition-all resize-none"
+            />
           </div>
         </div>
 
-        {/* Variants Manager */}
+        {/* VARIANTS */}
         <div className="pt-6 border-t border-gray-100">
           <div className="flex items-center justify-between mb-4">
-            <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Inventory & Variants</h4>
-            <button 
-              type="button" 
+            <h4 className="text-sm font-bold text-gray-900 uppercase tracking-wider">
+              Inventory & Variants
+            </h4>
+
+            <button
+              type="button"
               onClick={addVariant}
               className="text-xs font-bold text-brand-pink hover:text-brand-pink/80 flex items-center gap-1 bg-brand-pink/10 px-3 py-1.5 rounded-lg transition-colors"
             >
-              <Plus className="h-3 w-3" /> Add Variant
+              <Plus className="h-3 w-3" />
+              Add Variant
             </button>
           </div>
 
           <div className="space-y-4">
-            {variants.map((variant, index) => (
-              <div key={variant.id} className="bg-gray-50/50 border border-gray-200 p-5 rounded-xl relative group">
+            {variants.map(variant => (
+              <div
+                key={variant.id}
+                className="bg-gray-50/50 border border-gray-200 p-5 rounded-xl relative group"
+              >
                 {variants.length > 1 && (
-                  <button 
-                    type="button" 
-                    onClick={() => removeVariant(variant.id)}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      removeVariant(variant.id)
+                    }
                     className="absolute -top-2 -right-2 bg-white border border-gray-200 text-gray-400 hover:text-brand-red hover:border-brand-red/30 hover:bg-brand-red/5 p-1.5 rounded-full shadow-sm opacity-0 group-hover:opacity-100 transition-all"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}
-                
-                {/* IMPROVED GRID: 12-column layout to prevent blowout */}
+
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
-                  
-                  {/* Row 1: Size, Color, Price */}
                   <div className="sm:col-span-4 min-w-0">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Size</label>
-                    <input 
-                      type="text" 
-                      placeholder="M, L, etc" 
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Size
+                    </label>
+
+                    <input
+                      type="text"
+                      placeholder="M, L, etc"
                       value={variant.size}
-                      onChange={(e) => updateVariant(variant.id, 'size', e.target.value)}
-                      className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white" 
-                    />
-                  </div>
-                  
-                  <div className="sm:col-span-4 min-w-0">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Color</label>
-                    <input 
-                      type="text" 
-                      placeholder="Black" 
-                      value={variant.color}
-                      onChange={(e) => updateVariant(variant.id, 'color', e.target.value)}
-                      className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white" 
+                      onChange={e =>
+                        updateVariant(
+                          variant.id,
+                          'size',
+                          e.target.value
+                        )
+                      }
+                      className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white"
                     />
                   </div>
 
                   <div className="sm:col-span-4 min-w-0">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Price (Opt)</label>
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      placeholder="Override ₦" 
-                      value={variant.price || ''}
-                      onChange={(e) => updateVariant(variant.id, 'price', e.target.value)}
-                      className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white" 
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Color
+                    </label>
+
+                    <input
+                      type="text"
+                      placeholder="Black"
+                      value={variant.color}
+                      onChange={e =>
+                        updateVariant(
+                          variant.id,
+                          'color',
+                          e.target.value
+                        )
+                      }
+                      className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white"
                     />
                   </div>
-                  
-                  {/* Row 2: Stock and SKU */}
+
                   <div className="sm:col-span-4 min-w-0">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Stock <span className="text-brand-red">*</span></label>
-                    <input 
-                      type="number" 
-                      required 
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Price (Opt)
+                    </label>
+
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="Override ₦"
+                      value={variant.price || ''}
+                      onChange={e =>
+                        updateVariant(
+                          variant.id,
+                          'price',
+                          e.target.value
+                        )
+                      }
+                      className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-4 min-w-0">
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Stock <span className="text-brand-red">*</span>
+                    </label>
+
+                    <input
+                      type="number"
+                      required
                       value={variant.stock_count}
-                      onChange={(e) => updateVariant(variant.id, 'stock_count', parseInt(e.target.value) || 0)}
-                      className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white" 
+                      onChange={e =>
+                        updateVariant(
+                          variant.id,
+                          'stock_count',
+                          parseInt(e.target.value) || 0
+                        )
+                      }
+                      className="block w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none transition-all bg-white"
                     />
                   </div>
 
                   <div className="sm:col-span-8 min-w-0">
-                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">SKU <span className="text-brand-red">*</span></label>
+                    <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">
+                      SKU <span className="text-brand-red">*</span>
+                    </label>
+
                     <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        required 
+                      <input
+                        type="text"
+                        required
                         value={variant.sku}
-                        onChange={(e) => updateVariant(variant.id, 'sku', e.target.value.toUpperCase())}
-                        placeholder="SKU" 
-                        className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none uppercase transition-all bg-white" 
+                        onChange={e =>
+                          updateVariant(
+                            variant.id,
+                            'sku',
+                            e.target.value.toUpperCase()
+                          )
+                        }
+                        placeholder="SKU"
+                        className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-brand-pink focus:outline-none uppercase transition-all bg-white"
                       />
-                      <button 
-                        type="button" 
-                        onClick={() => generateVariantSKU(variant.id)}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          generateVariantSKU(variant.id)
+                        }
                         className="flex items-center justify-center px-3 bg-white border border-gray-200 hover:bg-brand-pink/5 hover:border-brand-pink/30 hover:text-brand-pink text-gray-500 rounded-lg transition-all"
                         title="Auto-Generate SKU"
                       >
@@ -224,32 +529,56 @@ export default function CreateProductForm({ collections }) {
           </div>
         </div>
 
+        {/* IMAGES */}
         <div className="pt-6 border-t border-gray-100">
-          <label className="block text-sm font-bold text-gray-700 mb-2">Product Images</label>
-          <input 
-            type="file" 
-            accept="image/*" 
-            multiple 
+          <label className="block text-sm font-bold text-gray-700 mb-2">
+            Product Images
+          </label>
+
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={isSubmitting}
             onChange={handleImageChange}
-            className="block w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:border-0 file:rounded-lg file:text-sm file:font-bold file:bg-brand-pink/10 file:text-brand-pink hover:file:bg-brand-pink/20 border border-gray-200 rounded-xl mb-4 transition-all cursor-pointer" 
+            className="block w-full text-sm font-medium text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:border-0 file:rounded-lg file:text-sm file:font-bold file:bg-brand-pink/10 file:text-brand-pink hover:file:bg-brand-pink/20 border border-gray-200 rounded-xl mb-4 transition-all cursor-pointer disabled:opacity-50"
           />
-          
+
           {imagePreviews.length > 0 && (
             <div className="grid grid-cols-3 gap-3">
               {imagePreviews.map((src, idx) => (
-                <div 
-                  key={idx} 
-                  onClick={() => setPrimaryIndex(idx)}
-                  className={`relative cursor-pointer rounded-xl overflow-hidden group aspect-square bg-gray-50 transition-all ${primaryIndex === idx ? 'ring-2 ring-brand-pink ring-offset-2' : 'border border-gray-200 hover:border-brand-pink/50'}`}
+                <div
+                  key={idx}
+                  onClick={() =>
+                    !isSubmitting &&
+                    setPrimaryIndex(idx)
+                  }
+                  className={`relative cursor-pointer rounded-xl overflow-hidden group aspect-square bg-gray-50 transition-all ${
+                    primaryIndex === idx
+                      ? 'ring-2 ring-brand-pink ring-offset-2'
+                      : 'border border-gray-200 hover:border-brand-pink/50'
+                  }`}
                 >
-                  <img src={src} alt="preview" className="h-full w-full object-cover" />
+                  <img
+                    src={src}
+                    alt="preview"
+                    className="h-full w-full object-cover"
+                  />
+
                   {primaryIndex === idx && (
-                    <div className="absolute top-2 left-2 bg-brand-pink text-white text-[10px] uppercase font-extrabold px-2 py-1 rounded shadow-sm">Primary</div>
+                    <div className="absolute top-2 left-2 bg-brand-pink text-white text-[10px] uppercase font-extrabold px-2 py-1 rounded shadow-sm">
+                      Primary
+                    </div>
                   )}
-                  <button 
-                    type="button" 
-                    onClick={(e) => { e.stopPropagation(); removeImage(idx); }}
-                    className="absolute top-2 right-2 bg-white/90 text-gray-700 hover:bg-brand-red hover:text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm"
+
+                  <button
+                    type="button"
+                    disabled={isSubmitting}
+                    onClick={e => {
+                      e.stopPropagation()
+                      removeImage(idx)
+                    }}
+                    className="absolute top-2 right-2 bg-white/90 text-gray-700 hover:bg-brand-red hover:text-white p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-all shadow-sm disabled:opacity-50"
                   >
                     <X className="h-4 w-4" />
                   </button>
@@ -257,21 +586,51 @@ export default function CreateProductForm({ collections }) {
               ))}
             </div>
           )}
+
+          {isSubmitting && uploadProgress && (
+            <div className="mt-4 flex items-center gap-2 text-sm font-medium text-brand-pink">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {uploadProgress}
+            </div>
+          )}
         </div>
 
+        {/* PUBLISH */}
         <div className="flex items-center pt-2">
-          <input type="checkbox" id="is_published" name="is_published" className="h-4 w-4 border-gray-300 rounded text-brand-pink focus:ring-brand-pink transition-all" defaultChecked />
-          <label htmlFor="is_published" className="ml-3 block text-sm text-gray-900 font-bold">Publish immediately</label>
+          <input
+            type="checkbox"
+            id="is_published"
+            name="is_published"
+            className="h-4 w-4 border-gray-300 rounded text-brand-pink focus:ring-brand-pink transition-all"
+            defaultChecked
+          />
+
+          <label
+            htmlFor="is_published"
+            className="ml-3 block text-sm text-gray-900 font-bold"
+          >
+            Publish immediately
+          </label>
         </div>
 
+        {/* SUBMIT */}
         <div className="pt-4 border-t border-gray-100">
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isSubmitting}
             className="w-full flex items-center justify-center gap-2 bg-brand-gold text-white rounded-xl px-8 py-3 text-sm font-bold hover:bg-brand-gold-hover transition-all shadow-md shadow-brand-gold/20 disabled:opacity-50"
           >
-            <Plus className="h-4 w-4" />
-            {isSubmitting ? 'Uploading & Creating...' : 'Create Product'}
+            {isSubmitting ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {uploadProgress || 'Creating Product...'}
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4" />
+                Create Product
+              </>
+            )}
           </button>
         </div>
       </form>

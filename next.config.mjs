@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 1. New: Cloudinary image configuration
   images: {
     remotePatterns: [
       {
@@ -10,18 +9,6 @@ const nextConfig = {
       },
     ],
   },
-  
-  // 2. Existing: Your server actions and body size limits
-  experimental: {
-    serverActions: {
-      allowedOrigins: [
-        'localhost:3000',
-        'recklessera.com'
-      ],
-      bodySizeLimit: '50mb' 
-    },
-    proxyClientMaxBodySize: '50mb'
-  }
-};
+}
 
-export default nextConfig;
+export default nextConfig
