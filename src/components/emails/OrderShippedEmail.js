@@ -7,7 +7,7 @@ import {
   Text,
   Button,
   Hr,
-} from '@react-email/components';
+} from 'react-email';
 
 export default function OrderShippedEmail({ 
   firstName, 
