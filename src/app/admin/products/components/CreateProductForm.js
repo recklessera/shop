@@ -132,7 +132,9 @@ export default function CreateProductForm({ collections }) {
     })
 
     if (!signatureResponse.ok) {
-      const errorData = await signatureResponse.json().catch(() => ({}))
+      const errorData = await signatureResponse
+        .json()
+        .catch(() => ({}))
 
       throw new Error(
         errorData.error || 'Failed to prepare image upload.'
@@ -177,6 +179,16 @@ export default function CreateProductForm({ collections }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
+    /*
+     * IMPORTANT:
+     * Capture the form and FormData BEFORE any await.
+     *
+     * React/browser event targets should not be relied on after
+     * asynchronous operations have started.
+     */
+    const form = e.currentTarget
+    const formData = new FormData(form)
+
     const missingSkus = variants.some(
       v => !v.sku.trim()
     )
@@ -215,8 +227,6 @@ export default function CreateProductForm({ collections }) {
        * Only send normal form fields + Cloudinary URLs
        * to the Server Action.
        */
-      const formData = new FormData(e.currentTarget)
-
       formData.append(
         'imageUrls',
         JSON.stringify(imageUrls)
@@ -239,7 +249,7 @@ export default function CreateProductForm({ collections }) {
         URL.revokeObjectURL(url)
       })
 
-      e.currentTarget.reset()
+      form.reset()
 
       setImages([])
       setImagePreviews([])
