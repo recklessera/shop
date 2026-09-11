@@ -2,6 +2,9 @@ import { prisma } from '@/lib/prisma'
 import { Users, Mail, Phone, ChevronLeft, ChevronRight, MapPin } from 'lucide-react'
 import Link from 'next/link'
 
+// CRITICAL: Prevent Next.js from caching the directory so stats are always live
+export const dynamic = 'force-dynamic'
+
 export default async function CustomersPage({ searchParams }) {
   const params = await searchParams
   const currentPage = Number(params?.page) || 1
@@ -19,23 +22,36 @@ export default async function CustomersPage({ searchParams }) {
     orderBy: { created_at: 'desc' },
     include: {
       orders: {
-        select: { total_amount: true }
+        // FIXED: Fetch status so we can filter out pending/cancelled in memory
+        select: { total_amount: true, status: true }
       }
     }
   })
 
   const formattedCustomers = customers.map(customer => {
-    const totalSpend = customer.orders.reduce((sum, order) => sum + (order.total_amount || 0), 0)
+    // FIXED: Only count successful/active orders for statistics
+    const validOrders = customer.orders.filter(
+      order => !['cancelled', 'pending'].includes((order.status || '').toLowerCase())
+    )
     
-    // Safely check if they have addresses saved in the JSON
+    const totalSpend = validOrders.reduce((sum, order) => sum + (order.total_amount || 0), 0)
+    
+    // FIXED: Robustly handle stringified JSON, single objects, and arrays
     let addressCount = 0
-    if (customer.saved_addresses && Array.isArray(customer.saved_addresses)) {
-      addressCount = customer.saved_addresses.length
+    let parsedAddresses = customer.saved_addresses
+    if (typeof parsedAddresses === 'string') {
+      try { parsedAddresses = JSON.parse(parsedAddresses) } catch(e) { parsedAddresses = null }
+    }
+    
+    if (Array.isArray(parsedAddresses)) {
+      addressCount = parsedAddresses.length
+    } else if (parsedAddresses && typeof parsedAddresses === 'object' && Object.keys(parsedAddresses).length > 0) {
+      addressCount = 1
     }
 
     return {
       ...customer,
-      orderCount: customer.orders.length,
+      orderCount: validOrders.length, // Only reflects successful orders
       totalSpend,
       addressCount
     }
@@ -75,14 +91,14 @@ export default async function CustomersPage({ searchParams }) {
                     <span className="text-sm font-bold text-gray-900 truncate">
                       {customer.name || 'No Name Set'}
                     </span>
-                    {customer.orderCount > 5 && (
+                    {/* VIP Check relies on valid orders only */}
+                    {customer.orderCount >= 5 && (
                       <span className="px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-tighter bg-brand-gold/10 text-brand-gold-hover rounded-md">
                         VIP
                       </span>
                     )}
                   </div>
                   
-                  {/* NEW: Added Phone and Address info to the list view */}
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
                     <span className="flex items-center gap-1 text-xs text-gray-500 font-medium truncate">
                       <Mail className="h-3 w-3" /> {customer.email}
@@ -108,7 +124,7 @@ export default async function CustomersPage({ searchParams }) {
 
                 <div className="flex items-center gap-8 sm:gap-12 flex-shrink-0 pt-2 sm:pt-0">
                   <div className="text-left sm:text-right">
-                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Orders</p>
+                    <p className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Valid Orders</p>
                     <p className="text-sm font-bold text-gray-900">{customer.orderCount}</p>
                   </div>
                   <div className="text-left sm:text-right">

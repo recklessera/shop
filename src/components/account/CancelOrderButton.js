@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { cancelPendingOrder } from "@/app/account/actions";
+import { cancelPendingOrder } from "@/app/(storefront)/account/actions";
 
 export default function CancelOrderButton({ orderId }) {
   const [loading, setLoading] = useState(false);

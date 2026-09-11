@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
-import { updatePrismaProfile } from "@/app/account/actions";
+import { updatePrismaProfile } from "@/app/(storefront)/account/actions";
 import { useSearchParams } from "next/navigation"; // 1. ADD THIS IMPORT
 
 const NIGERIAN_STATES = [

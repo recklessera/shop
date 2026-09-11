@@ -1,26 +1,31 @@
 import { prisma } from '@/lib/prisma'
 import DashboardClient from './components/DashboardClient'
 
+// 1. CRITICAL: Prevent Next.js from caching the dashboard so revenue is always live
+export const dynamic = 'force-dynamic';
+
 export default async function AdminDashboard() {
   const productsCount = await prisma.product.count({ where: { is_published: true } })
   const ordersCount = await prisma.order.count()
   
+  // 2. FIXED: Exclude both cancelled AND pending orders from total revenue
   const revenueAggregation = await prisma.order.aggregate({
     _sum: { total_amount: true },
-    where: { status: { not: 'cancelled' } }
+    where: { 
+      status: { notIn: ['cancelled', 'pending'] } 
+    }
   })
   const revenue = revenueAggregation._sum.total_amount || 0
 
-  // Query the Variants table, not the Product table
   const lowStock = await prisma.productVariant.findMany({
     where: { stock_count: { lte: 5 } },
     include: {
       product: { 
-        select: { title: true } // Grab the parent product's title so we know what it is
+        select: { title: true } 
       }
     },
     orderBy: { stock_count: 'asc' },
-    take: 5, // Good practice to limit dashboard widgets so they don't break the UI
+    take: 5, 
   })
 
   const recentOrders = await prisma.order.findMany({
@@ -31,9 +36,15 @@ export default async function AdminDashboard() {
     take: 5
   })
 
+  // 3. FIXED: Only count best sellers from actual, successful orders
   const bestSellersGroup = await prisma.orderItem.groupBy({
     by: ['product_id'],
     _sum: { quantity: true },
+    where: {
+      order: {
+        status: { notIn: ['cancelled', 'pending'] }
+      }
+    },
     orderBy: { _sum: { quantity: 'desc' } },
     take: 4 
   })
@@ -60,7 +71,7 @@ export default async function AdminDashboard() {
   const initialMetrics = { revenue, ordersCount, productsCount }
 
   // ---------------------------------------------------------
-  // 1. GENERATE DAILY DATA (LAST 7 DAYS)
+  // GENERATE DAILY DATA (LAST 7 DAYS)
   // ---------------------------------------------------------
   const last7Days = Array.from({length: 7}, (_, i) => {
     const d = new Date()
@@ -69,8 +80,12 @@ export default async function AdminDashboard() {
     return d
   })
 
+  // 4. FIXED: Exclude pending from charts
   const orders7d = await prisma.order.findMany({
-    where: { created_at: { gte: last7Days[0] }, status: { not: 'cancelled' } },
+    where: { 
+      created_at: { gte: last7Days[0] }, 
+      status: { notIn: ['cancelled', 'pending'] } 
+    },
     select: { created_at: true, total_amount: true }
   })
 
@@ -85,27 +100,30 @@ export default async function AdminDashboard() {
   })
 
   // ---------------------------------------------------------
-  // 2. GENERATE MONTHLY DATA (LAST 6 MONTHS)
+  // GENERATE MONTHLY DATA (LAST 6 MONTHS)
   // ---------------------------------------------------------
   const last6Months = Array.from({length: 6}, (_, i) => {
     const d = new Date()
     d.setMonth(d.getMonth() - (5 - i))
-    d.setDate(1) // Lock to the 1st of the month
+    d.setDate(1) 
     d.setHours(0, 0, 0, 0)
-    // Create a strict window from the 1st of the month to the last day of the month
     return { 
       start: d, 
       end: new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59) 
     }
   })
 
+  // 5. FIXED: Exclude pending from charts
   const orders6m = await prisma.order.findMany({
-    where: { created_at: { gte: last6Months[0].start }, status: { not: 'cancelled' } },
+    where: { 
+      created_at: { gte: last6Months[0].start }, 
+      status: { notIn: ['cancelled', 'pending'] } 
+    },
     select: { created_at: true, total_amount: true }
   })
 
   const chartData6m = last6Months.map(monthData => {
-    const monthStr = monthData.start.toLocaleDateString('en-US', { month: 'short' }) // e.g., "Nov", "Dec"
+    const monthStr = monthData.start.toLocaleDateString('en-US', { month: 'short' }) 
     const monthOrders = orders6m.filter(o => {
       const orderDate = new Date(o.created_at)
       return orderDate >= monthData.start && orderDate <= monthData.end

@@ -34,7 +34,6 @@ export async function updateStoreSettings(formData) {
     }
 
     revalidatePath('/admin/settings')
-    // We will also want to revalidate the main storefront once it's built
     revalidatePath('/') 
   } catch (error) {
     console.error("Failed to update settings:", error)

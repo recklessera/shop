@@ -61,18 +61,22 @@ export default function AnalyticsClient({ metrics }) {
                 <Award className="h-5 w-5 text-brand-gold" /> VIP Customers
               </h3>
               <div className="space-y-4">
-                {metrics.topCustomers.map((user, idx) => (
-                  <div key={user.id} className="flex justify-between items-center group">
-                    <div className="flex items-center gap-4">
-                      <span className="text-brand-gold font-extrabold w-4">{idx + 1}.</span>
-                      <div>
-                        <p className="text-sm font-bold text-gray-900 print:text-black group-hover:text-brand-pink transition-colors">{user.name || user.email}</p>
-                        <p className="text-xs text-gray-500 font-medium">{user.ordersCount} Orders</p>
+                {metrics.topCustomers.length === 0 ? (
+                  <p className="text-sm font-medium text-gray-500">No customer data yet.</p>
+                ) : (
+                  metrics.topCustomers.map((user, idx) => (
+                    <div key={user.id || idx} className="flex justify-between items-center group">
+                      <div className="flex items-center gap-4">
+                        <span className="text-brand-gold font-extrabold w-4">{idx + 1}.</span>
+                        <div>
+                          <p className="text-sm font-bold text-gray-900 print:text-black group-hover:text-brand-pink transition-colors">{user.name || user.email}</p>
+                          <p className="text-xs text-gray-500 font-medium">{user.ordersCount} Orders</p>
+                        </div>
                       </div>
+                      <p className="text-sm font-extrabold text-gray-900 print:text-black">₦{user.totalSpent.toLocaleString()}</p>
                     </div>
-                    <p className="text-sm font-extrabold text-gray-900 print:text-black">₦{user.totalSpent.toLocaleString()}</p>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
@@ -82,15 +86,19 @@ export default function AnalyticsClient({ metrics }) {
                 <Package className="h-5 w-5 text-brand-pink" /> Best Selling Products
               </h3>
               <div className="space-y-4">
-                {metrics.bestSellers.map((item, idx) => (
-                  <div key={item.id} className="flex justify-between items-center group">
-                    <div className="flex items-center gap-4">
-                      <span className="text-brand-pink font-extrabold w-4">{idx + 1}.</span>
-                      <p className="text-sm font-bold text-gray-900 print:text-black group-hover:text-brand-pink transition-colors truncate pr-4">{item.title}</p>
+                {metrics.bestSellers.length === 0 ? (
+                  <p className="text-sm font-medium text-gray-500">No products sold yet.</p>
+                ) : (
+                  metrics.bestSellers.map((item, idx) => (
+                    <div key={item.id} className="flex justify-between items-center group">
+                      <div className="flex items-center gap-4">
+                        <span className="text-brand-pink font-extrabold w-4">{idx + 1}.</span>
+                        <p className="text-sm font-bold text-gray-900 print:text-black group-hover:text-brand-pink transition-colors truncate pr-4">{item.title}</p>
+                      </div>
+                      <p className="text-sm font-extrabold text-gray-900 print:text-black whitespace-nowrap">{item.total_sold || 0} units</p>
                     </div>
-                    <p className="text-sm font-extrabold text-gray-900 print:text-black whitespace-nowrap">{item.total_sold} units</p>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 

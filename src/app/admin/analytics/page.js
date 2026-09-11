@@ -9,10 +9,11 @@ export default async function AnalyticsPage() {
   const activeProductsCount = await prisma.product.count({ where: { is_published: true } })
   
   // 1. PERFORMANCE SUMMARY
+  // FIXED: Exclude both cancelled and pending orders
   const ordersAggregation = await prisma.order.aggregate({
     _sum: { total_amount: true },
     _count: { id: true },
-    where: { status: { not: 'cancelled' } }
+    where: { status: { notIn: ['cancelled', 'pending'] } }
   })
   
   const revenue = ordersAggregation._sum.total_amount || 0
@@ -20,9 +21,14 @@ export default async function AnalyticsPage() {
   const averageOrderValue = totalOrders > 0 ? Math.round(revenue / totalOrders) : 0
 
   // Total Items Sold
+  // FIXED: Exclude items from cancelled and pending orders
   const itemsAggregation = await prisma.orderItem.aggregate({
     _sum: { quantity: true },
-    where: { order: { status: { not: 'cancelled' } } }
+    where: { 
+      order: { 
+        status: { notIn: ['cancelled', 'pending'] } 
+      } 
+    }
   })
   const totalItemsSold = itemsAggregation._sum.quantity || 0
 
@@ -32,7 +38,10 @@ export default async function AnalyticsPage() {
     by: ['customer_id'],
     _sum: { total_amount: true },
     _count: { id: true },
-    where: { status: { not: 'cancelled' } },
+    where: { 
+      status: { notIn: ['cancelled', 'pending'] },
+      customer_id: { not: null } // FIXED: Prevent grouping all guest checkouts into one massive fake user
+    },
     orderBy: { _sum: { total_amount: 'desc' } },
     take: 5
   })
@@ -44,7 +53,7 @@ export default async function AnalyticsPage() {
   })
   
   const topCustomers = topCustomerStats.map(stat => {
-    // 2. CRITICAL FIX: Fallback in case a user was deleted but their order remained
+    // Fallback in case a user was deleted but their order remained
     const user = topCustomersData.find(c => c.id === stat.customer_id) || { name: 'Deleted User', email: 'N/A' }
     return {
       ...user,
@@ -57,6 +66,11 @@ export default async function AnalyticsPage() {
   const bestSellersGroup = await prisma.orderItem.groupBy({
     by: ['product_id'],
     _sum: { quantity: true },
+    where: {
+      order: {
+        status: { notIn: ['cancelled', 'pending'] } // FIXED: Only count successfully paid items
+      }
+    },
     orderBy: { _sum: { quantity: 'desc' } },
     take: 5
   })

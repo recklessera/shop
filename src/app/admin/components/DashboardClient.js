@@ -26,11 +26,11 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
     window.print()
   }
 
-  // Add this helper inside your DashboardClient component
+  // Consistent SaaS text colors for the feed
   const getStatusTextColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'delivered': return 'text-green-500'
-      case 'shipped': return 'text-blue-500'
+      case 'delivered': return 'text-green-600'
+      case 'shipped': return 'text-blue-600'
       case 'processing': return 'text-brand-pink'
       case 'cancelled': return 'text-brand-red'
       case 'pending': return 'text-brand-gold'
@@ -73,7 +73,7 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
 
       <div id="dashboard-report" className="space-y-8 print:space-y-6">
         
-        {/* KPI Grid - Upgraded with hover floating and colored icon backgrounds */}
+        {/* KPI Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 print:grid-cols-3 print:gap-4">
           <Link href="/admin/orders" className="block bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-brand-pink/30 hover:-translate-y-1 transition-all duration-300 group print:shadow-none print:border-black">
             <div className="flex items-center gap-4 mb-4">
@@ -106,7 +106,7 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
           </Link>
         </div>
 
-        {/* Recharts Analytics Area - Upgraded with SaaS Gradients */}
+        {/* Recharts Analytics Area */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 print:shadow-none print:border-black">
           <div className="flex justify-between items-center mb-8">
             <h3 className="text-lg font-bold text-gray-900 print:text-black">
@@ -125,7 +125,8 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }} tickFormatter={(value) => `₦${value/1000}k`} />
+                {/* FIXED: Formatter safely handles numbers smaller than 1000 without returning "0.5k" */}
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 12, fill: '#6B7280', fontWeight: 500 }} tickFormatter={(value) => value >= 1000 ? `₦${value/1000}k` : `₦${value}`} />
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}
                   itemStyle={{ color: 'var(--color-brand-pink)', fontWeight: 'bold' }}
@@ -154,11 +155,9 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
                 lowStock.map(item => (
                   <Link href={`/admin/products/${item.product_id}`} key={item.id} className="p-5 flex justify-between items-center hover:bg-gray-50 transition-colors block group">
                     <div className="flex-1 min-w-0 pr-4">
-                      
                       <p className="text-sm font-bold text-gray-900 print:text-black group-hover:text-brand-pink transition-colors truncate pr-2">
                         {item.product?.title || 'Unknown Product'}
                       </p>
-                      
                       <div className="flex items-center gap-2 mt-1">
                         {(item.size || item.color) && (
                           <span className="text-[10px] uppercase font-extrabold tracking-wider bg-brand-pink/10 text-brand-pink px-2 py-0.5 rounded">
@@ -170,7 +169,6 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
                         </span>
                       </div>
                     </div>
-                    
                     <span className="inline-flex flex-shrink-0 items-center px-3 py-1 rounded-full text-xs font-bold bg-brand-red/10 text-brand-red whitespace-nowrap">
                       <span className="h-1.5 w-1.5 rounded-full bg-brand-red animate-pulse mr-1.5"></span>
                       {item.stock_count} left
@@ -224,22 +222,30 @@ export default function DashboardClient({ initialMetrics, lowStock, recentOrders
               {recentOrders.length === 0 ? (
                 <p className="p-8 text-center text-sm font-medium text-gray-500">No orders placed yet.</p>
               ) : (
-                recentOrders.map(order => (
-                  <Link href={`/admin/orders/${order.id}`} key={order.id} className="p-5 flex justify-between items-center hover:bg-gray-50 transition-colors block group">
-                    <div className="min-w-0 flex-1 pr-2">
-                      <p className="text-sm font-bold text-gray-900 print:text-black group-hover:text-brand-pink transition-colors truncate">
-                        {order.customer?.name || order.customer?.email || 'Unknown User'}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-0.5 font-medium">{new Date(order.created_at).toLocaleDateString()}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <p className="text-sm font-extrabold text-gray-900 print:text-black">₦{order.total_amount.toLocaleString()}</p>
-                      <p className={`text-[10px] uppercase font-bold tracking-wider mt-1 ${getStatusTextColor(order.status)}`}>
+                recentOrders.map(order => {
+                  // FIXED: Determine if the order is valid or abandoned to dim it out
+                  const isAbandoned = ['cancelled', 'pending'].includes(order.status?.toLowerCase());
+
+                  return (
+                    <Link href={`/admin/orders/${order.id}`} key={order.id} className={`p-5 flex justify-between items-center hover:bg-gray-50 transition-colors block group ${isAbandoned ? 'opacity-75' : ''}`}>
+                      <div className="min-w-0 flex-1 pr-2">
+                        <p className={`text-sm font-bold transition-colors truncate ${isAbandoned ? 'text-gray-500 group-hover:text-gray-700' : 'text-gray-900 print:text-black group-hover:text-brand-pink'}`}>
+                          {order.customer?.name || order.customer?.email || 'Unknown User'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5 font-medium">{new Date(order.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        {/* FIXED: Apply strikethrough to abandoned carts so they aren't confused with real revenue */}
+                        <p className={`text-sm font-extrabold print:text-black ${isAbandoned ? 'text-gray-400 line-through' : 'text-gray-900'}`}>
+                          ₦{order.total_amount.toLocaleString()}
+                        </p>
+                        <p className={`text-[10px] uppercase font-bold tracking-wider mt-1 ${getStatusTextColor(order.status)}`}>
                           {order.status}
                         </p>
-                    </div>
-                  </Link>
-                ))
+                      </div>
+                    </Link>
+                  )
+                })
               )}
             </div>
           </div>

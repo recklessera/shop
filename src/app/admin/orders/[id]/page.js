@@ -168,7 +168,9 @@ export default async function OrderDetailPage({ params }) {
               <span className="font-medium text-gray-500">Current Status</span>
               <span className={`px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${getStatusColor(order.status)}`}>{order.status}</span>
             </div>
-            <OrderStatusForm orderId={order.id} currentStatus={order.status} />
+            
+            {/* FIXED: We now pass the entire order object so the component can pre-fill courier info */}
+            <OrderStatusForm order={order} />
           </div>
 
           {/* Customer Info Box (UPDATED WITH PHONE) */}
@@ -213,7 +215,6 @@ export default async function OrderDetailPage({ params }) {
                 <MapPin className="h-5 w-5 text-brand-gold-hover" />
               </div>
               <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wider">Shipping Details</h3>
-              {/* NEW: Method Badge */}
               {address.method && (
                 <span className="ml-auto bg-gray-100 text-gray-600 px-2.5 py-1 rounded-md text-[10px] font-extrabold uppercase tracking-wider">
                   {address.method}
