@@ -11,7 +11,7 @@ export const metadata = {
 export default async function LookbookPage() {
   // 1. Fetch all gallery items from the database
   const galleryItems = await prisma.gallery.findMany({
-    orderBy: { sort_order: 'asc' },
+    orderBy: { sort_order: 'desc' },
   });
 
   // 2. Extract a list of unique, non-null categories for the filter buttons

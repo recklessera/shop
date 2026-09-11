@@ -64,116 +64,108 @@ export default function GalleryClient({ initialImages }) {
     }
   }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+ const handleSubmit = async (e) => {
+  e.preventDefault()
 
-    if (!image) {
-      alert('Please select an image to upload.')
-      return
-    }
+  const form = e.currentTarget
 
-    setIsSubmitting(true)
-
-    try {
-      /*
-       * STEP 1
-       * Ask our server for a signed Cloudinary upload.
-       *
-       * The actual image file will NOT go through the
-       * Next.js Server Action.
-       */
-      const signResponse = await fetch('/api/cloudinary/sign', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          folder: 'reckless_era/gallery',
-        }),
-      })
-
-      if (!signResponse.ok) {
-        throw new Error('Failed to prepare image upload.')
-      }
-
-      const {
-        cloudName,
-        apiKey,
-        timestamp,
-        signature,
-        folder,
-      } = await signResponse.json()
-
-      /*
-       * STEP 2
-       * Upload the image directly from the browser
-       * to Cloudinary.
-       */
-      const cloudinaryFormData = new FormData()
-
-      cloudinaryFormData.append('file', image)
-      cloudinaryFormData.append('api_key', apiKey)
-      cloudinaryFormData.append('timestamp', timestamp)
-      cloudinaryFormData.append('signature', signature)
-      cloudinaryFormData.append('folder', folder)
-
-      const cloudinaryResponse = await fetch(
-        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-        {
-          method: 'POST',
-          body: cloudinaryFormData,
-        }
-      )
-
-      if (!cloudinaryResponse.ok) {
-        const cloudinaryError = await cloudinaryResponse
-          .json()
-          .catch(() => null)
-
-        console.error(
-          'Cloudinary upload failed:',
-          cloudinaryError
-        )
-
-        throw new Error('Image upload to Cloudinary failed.')
-      }
-
-      const cloudinaryData = await cloudinaryResponse.json()
-
-      if (!cloudinaryData.secure_url) {
-        throw new Error('Cloudinary did not return an image URL.')
-      }
-
-      /*
-       * STEP 3
-       * Only send the tiny URL + metadata through
-       * the Next.js Server Action.
-       */
-      const formData = new FormData(e.currentTarget)
-
-      formData.delete('image')
-      formData.set('imageUrl', cloudinaryData.secure_url)
-
-      await addGalleryImage(formData)
-
-      /*
-       * STEP 4
-       * Reset the form.
-       */
-      e.currentTarget.reset()
-      removeImage()
-    } catch (error) {
-      console.error('Gallery upload failed:', error)
-
-      alert(
-        error instanceof Error
-          ? error.message
-          : 'Failed to upload image.'
-      )
-    } finally {
-      setIsSubmitting(false)
-    }
+  if (!image) {
+    alert('Please select an image to upload.')
+    return
   }
+
+  setIsSubmitting(true)
+
+  try {
+    // 1. Get Cloudinary signature
+    const signResponse = await fetch('/api/cloudinary/sign', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        folder: 'reckless_era/gallery',
+      }),
+    })
+
+    if (!signResponse.ok) {
+      throw new Error('Failed to prepare image upload.')
+    }
+
+    const {
+      cloudName,
+      apiKey,
+      timestamp,
+      signature,
+      folder,
+    } = await signResponse.json()
+
+    // 2. Upload directly to Cloudinary
+    const cloudinaryFormData = new FormData()
+
+    cloudinaryFormData.append('file', image)
+    cloudinaryFormData.append('api_key', apiKey)
+    cloudinaryFormData.append('timestamp', timestamp)
+    cloudinaryFormData.append('signature', signature)
+    cloudinaryFormData.append('folder', folder)
+
+    const cloudinaryResponse = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+      {
+        method: 'POST',
+        body: cloudinaryFormData,
+      }
+    )
+
+    if (!cloudinaryResponse.ok) {
+      const cloudinaryError = await cloudinaryResponse
+        .json()
+        .catch(() => null)
+
+      console.error(
+        'Cloudinary upload failed:',
+        cloudinaryError
+      )
+
+      throw new Error('Image upload to Cloudinary failed.')
+    }
+
+    const cloudinaryData = await cloudinaryResponse.json()
+
+    if (!cloudinaryData.secure_url) {
+      throw new Error('Cloudinary did not return an image URL.')
+    }
+
+    // 3. Send only the URL + metadata to the Server Action
+    const formData = new FormData()
+
+    formData.set('imageUrl', cloudinaryData.secure_url)
+    formData.set(
+      'caption',
+      form.elements.caption?.value || ''
+    )
+    formData.set(
+      'category',
+      form.elements.category?.value || ''
+    )
+
+    await addGalleryImage(formData)
+
+    // 4. Reset
+    form.reset()
+    removeImage()
+  } catch (error) {
+    console.error('Gallery upload failed:', error)
+
+    alert(
+      error instanceof Error
+        ? error.message
+        : 'Failed to upload image.'
+    )
+  } finally {
+    setIsSubmitting(false)
+  }
+}
 
   return (
     <div className="max-w-7xl mx-auto w-full text-left">
