@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from "uuid";
 function getShippingRate(state) {
   if (!state) return 0;
   
-  if (state === "Lagos") return 3500;
+  if (state === "Lagos") return 0;
   if (["Ogun", "Oyo", "Osun", "Ondo", "Ekiti"].includes(state)) return 5500;
   if (["FCT - Abuja", "Rivers"].includes(state)) return 7000;
   

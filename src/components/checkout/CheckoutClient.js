@@ -19,7 +19,7 @@ function getShippingRate(state) {
   if (!state) return 0;
   
   if (state === "Lagos") {
-    return 3500;
+    return 0;
   }
   if (["Ogun", "Oyo", "Osun", "Ondo", "Ekiti"].includes(state)) {
     return 5500; // South West
