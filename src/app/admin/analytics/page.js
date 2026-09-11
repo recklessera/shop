@@ -34,26 +34,31 @@ export default async function AnalyticsPage() {
 
   // 2. CUSTOMER INSIGHTS
   // Top Spenders
-  const topCustomerStats = await prisma.order.groupBy({
+  const topCustomerStatsRaw = await prisma.order.groupBy({
     by: ['customer_id'],
     _sum: { total_amount: true },
     _count: { id: true },
     where: { 
-      status: { notIn: ['cancelled', 'pending'] },
-      customer_id: { not: null } // FIXED: Prevent grouping all guest checkouts into one massive fake user
+      status: { notIn: ['cancelled', 'pending'] }
+      // Removed the strict { not: null } check that was crashing Prisma
     },
     orderBy: { _sum: { total_amount: 'desc' } },
-    take: 5
+    take: 6 // We pull 6 just in case the "Ghost" guest pool takes up one spot
   })
   
-  const topCustomerIds = topCustomerStats.map(c => c.customer_id)
+  // FIXED: We safely filter out empty/null customer IDs in JavaScript instead!
+  const validTopCustomerStats = topCustomerStatsRaw
+    .filter(stat => stat.customer_id && stat.customer_id.trim() !== "")
+    .slice(0, 5) // Lock it back down to the Top 5
+  
+  const topCustomerIds = validTopCustomerStats.map(c => c.customer_id)
+  
   const topCustomersData = await prisma.user.findMany({
     where: { id: { in: topCustomerIds } },
     select: { id: true, name: true, email: true }
   })
   
-  const topCustomers = topCustomerStats.map(stat => {
-    // Fallback in case a user was deleted but their order remained
+  const topCustomers = validTopCustomerStats.map(stat => {
     const user = topCustomersData.find(c => c.id === stat.customer_id) || { name: 'Deleted User', email: 'N/A' }
     return {
       ...user,
@@ -61,7 +66,7 @@ export default async function AnalyticsPage() {
       ordersCount: stat._count.id
     }
   })
-
+  
   // Best Sellers
   const bestSellersGroup = await prisma.orderItem.groupBy({
     by: ['product_id'],

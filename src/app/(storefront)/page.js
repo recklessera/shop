@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/prisma"; 
-import HeroBanner from "../components/home/HeroBanner"; 
-import ProductGrid from "../components/home/ProductGrid"; 
-import LookbookCarousel from "../components/home/LookbookCarousel";
-import CollectionGrid from "../components/home/CollectionGrid"; 
-import BrandValueProps from "../components/home/BrandValueProps"; 
-import BlogPreview from "../components/home/BlogPreview"; 
-import JoinTheInnerCircle from "../components/home/JoinTheInnerCircle";
+import HeroBanner from "../../components/home/HeroBanner"; 
+import ProductGrid from "../../components/home/ProductGrid"; 
+import LookbookCarousel from "../../components/home/LookbookCarousel";
+import CollectionGrid from "../../components/home/CollectionGrid"; 
+import BrandValueProps from "../../components/home/BrandValueProps"; 
+import BlogPreview from "../../components/home/BlogPreview"; 
+import JoinTheInnerCircle from "../../components/home/JoinTheInnerCircle";
 
 export const dynamic = 'force-dynamic';
 
