@@ -40,10 +40,20 @@ export async function POST(req) {
         return NextResponse.json({ error: 'No transaction reference found' }, { status: 400 });
       }
 
-      // 4. Fetch the order from the database
+      // 4. FIXED: Deeply fetch the order, customer, AND product details for the email
       const order = await prisma.order.findFirst({
         where: { squad_transaction_ref: transactionRef },
-        include: { items: true, customer: true }, // Added customer include for email fallback
+        include: { 
+          customer: true,
+          items: {
+            include: {
+              product: {
+                select: { title: true, images: { where: { is_primary: true }, take: 1 } }
+              },
+              variant: true
+            }
+          }
+        }, 
       });
 
       if (!order) {
@@ -59,7 +69,7 @@ export async function POST(req) {
 
       // 6. Process the Order & Inventory (Atomic Transaction)
       await prisma.$transaction(async (tx) => {
-        // A. Mark order as 'processing' (Matches our new Admin UI Statuses)
+        // A. Mark order as 'processing'
         await tx.order.update({
           where: { id: order.id },
           data: { status: "processing" },
@@ -104,6 +114,7 @@ export async function POST(req) {
             total={order.total_amount}
             method={address.method || 'Standard'}
             cost={address.cost || 0}
+            items={order.items} // FIXED: We are now actually passing the items to the template!
           />
         });
 
@@ -112,7 +123,6 @@ export async function POST(req) {
         }
       }
 
-      // FIXED: Moved the Admin Email inside the success block!
       const { error: adminEmailError } = await resend.emails.send({
         from: `Reckless System <${process.env.NEXT_PUBLIC_STORE_EMAIL || 'orders@recklessera.com'}>`, 
         to: ['recklesseraclothing@gmail.com'], 

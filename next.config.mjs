@@ -16,7 +16,7 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: [
         'localhost:3000',
-        'obscure-couscous-xrwp9xwv464v3p59j-3000.app.github.dev'
+        'recklessera.com'
       ],
       bodySizeLimit: '50mb' 
     },

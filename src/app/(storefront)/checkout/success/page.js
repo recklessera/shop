@@ -10,7 +10,9 @@ export const metadata = {
 
 export default async function CheckoutSuccessPage({ searchParams }) {
   const resolvedParams = await searchParams;
-  const ref = resolvedParams.ref;
+  
+  // FIXED: Catch all variations of the transaction reference that Squad might send
+  const ref = resolvedParams.ref || resolvedParams.reference || resolvedParams.transaction_ref;
 
   if (!ref) {
     return (
