@@ -23,7 +23,7 @@ export default async function HomePage() {
   });
 
   const lookbookItems = await prisma.gallery.findMany({
-    orderBy: { sort_order: 'asc' }, 
+    orderBy: { sort_order: 'desc' }, 
     take: 7,
   });
 
