@@ -25,13 +25,13 @@ export default function HeroBanner({ bannerUrl }) {
           Define Your Era
         </h1>
         <p className="text-base md:text-xl text-gray-200 mb-6 md:mb-8 max-w-lg text-center">
-          Premium quality pieces built for those who refuse to blend in. (Pre-order ends 18th of September).
+          Premium quality pieces built for those who refuse to blend in.
         </p>
         <Link 
           href="/shop" 
           className="bg-brand-primary text-brand-secondary px-6 py-3 md:px-8 md:py-4 font-bold tracking-wide uppercase hover:bg-brand-gold-hover hover:text-black transition-all duration-300 shadow-lg text-sm md:text-base"
         >
-          Pre-order Now
+          Shop Now
         </Link>
       </div>
       
