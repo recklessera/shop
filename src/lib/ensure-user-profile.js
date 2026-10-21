@@ -1,5 +1,3 @@
-import { prisma } from "@/lib/prisma";
-
 export class UserProfileIdentityMismatchError extends Error {
   constructor(email) {
     super(`A profile already exists for ${email} with a different ID. Account recovery is required before this account can continue.`);
@@ -17,7 +15,8 @@ function isUniqueConstraintError(error) {
  * Auth UUID is canonical; mismatched legacy IDs are never silently adopted.
  * The db argument is injectable for focused concurrency/error-path tests.
  */
-export async function ensureUserProfile(authUser, db = prisma) {
+export async function ensureUserProfile(authUser, db) {
+  if (!db?.user) throw new Error("A Prisma-compatible database client is required.");
   if (!authUser?.id || !authUser?.email) {
     throw new Error("A signed-in user with an email address is required.");
   }
