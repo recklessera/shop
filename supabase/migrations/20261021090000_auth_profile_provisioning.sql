@@ -3,8 +3,6 @@
 -- Test on a disposable/staging project first: trigger failures can block signups.
 
 create schema if not exists private;
-revoke all on schema private from public, anon, authenticated;
-
 create or replace function private.handle_new_auth_user()
 returns trigger
 language plpgsql
