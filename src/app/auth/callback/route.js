@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
+import { prisma } from '@/lib/prisma';
 import { ensureUserProfile, UserProfileIdentityMismatchError } from '@/lib/ensure-user-profile';
 
 export async function GET(request) {
@@ -19,7 +20,7 @@ export async function GET(request) {
       const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
       if (!userError && authUser) {
         try {
-          await ensureUserProfile(authUser);
+          await ensureUserProfile(authUser, prisma);
         } catch (profileError) {
           if (profileError instanceof UserProfileIdentityMismatchError) {
             return NextResponse.redirect(`${origin}/account?profile_error=identity_mismatch`);
