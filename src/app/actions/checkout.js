@@ -26,7 +26,7 @@ export async function createPendingOrder(cartItems, shippingDetails, discountCod
     if (!shippingDetails.state) throw new Error("A valid state is required for shipping.");
 
     // Do not let checkout depend on the customer having visited /account first.
-    const dbUser = await ensureUserProfile(authUser);
+    const dbUser = await ensureUserProfile(authUser, prisma);
 
     // 1. Fetch live products/variants to calculate true prices securely
     let subtotal = 0;
