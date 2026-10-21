@@ -28,7 +28,7 @@ export default async function AccountPage() {
   // 2. Ensure the profile is keyed to the canonical Supabase Auth UUID.
   let dbUser;
   try {
-    dbUser = await ensureUserProfile(authUser);
+    dbUser = await ensureUserProfile(authUser, prisma);
   } catch (profileError) {
     if (!(profileError instanceof UserProfileIdentityMismatchError)) throw profileError;
 
