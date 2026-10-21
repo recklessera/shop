@@ -5,8 +5,6 @@ import { revalidatePath } from 'next/cache'
 import { Resend } from 'resend'
 import OrderShippedEmail from '@/components/emails/OrderShippedEmail'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function updateOrderStatus(formData) {
   const id = formData.get('id')
   const status = formData.get('status').toLowerCase()
@@ -30,7 +28,10 @@ export async function updateOrderStatus(formData) {
     
     // 2. Trigger the Email IF the status is shipped
     if (status === 'shipped' && updatedOrder.customer?.email) {
-      
+      const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+      if (!resend) {
+        console.error('RESEND_API_KEY is missing; shipping email was skipped. Configure it in the deployment environment.')
+      } else {
       // Safely parse the address to get their first name
       let address = {}
       try {
@@ -57,6 +58,7 @@ export async function updateOrderStatus(formData) {
       if (emailError) {
         console.error('Failed to send shipping email:', emailError)
         // We don't throw an error here because the DB update was successful
+      }
       }
     }
 
