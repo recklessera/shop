@@ -5,9 +5,6 @@ import { Resend } from 'resend';
 import OrderReceiptEmail from '@/components/emails/OrderReceiptEmail';
 import AdminNewOrderEmail from '@/components/emails/AdminNewOrderEmail';
 
-// Initialize Resend
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req) {
   try {
     // 1. Extract the Raw Body and the Squad Signature Header
@@ -100,8 +97,14 @@ export async function POST(req) {
         address = {};
       }
 
-      // 8. Trigger the automated email via Resend
-      const customerEmail = payload.Body?.email || payload.email || order.customer?.email; 
+      // 8. Trigger automated emails only when the server-side API key is configured.
+      // Never fail payment processing or block a deployment because email is unconfigured.
+      const customerEmail = payload.Body?.email || payload.email || order.customer?.email;
+      const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+      if (!resend) {
+        console.error('RESEND_API_KEY is missing; order emails were skipped. Configure it in the deployment environment.');
+      } else {
       
       if (customerEmail) {
         const { error: emailError } = await resend.emails.send({
@@ -138,6 +141,7 @@ export async function POST(req) {
 
       if (adminEmailError) {
         console.error('Admin Resend Error:', adminEmailError);
+      }
       }
 
       console.log(`Webhook successfully processed order: ${order.id}`);

@@ -1,6 +1,7 @@
 import { Suspense } from 'react'; // 1. ADDED THIS IMPORT
 import { createClient } from '@/utils/supabase/server';
 import { prisma } from '@/lib/prisma';
+import { ensureUserProfile, UserProfileIdentityMismatchError } from '@/lib/ensure-user-profile';
 import AuthForm from '@/components/account/AuthForm';
 import CancelOrderButton from '@/components/account/CancelOrderButton';
 import AccountSettings from '@/components/account/AccountSettings';
@@ -24,20 +25,25 @@ export default async function AccountPage() {
     );
   }
 
-  // 2. Fetch or Create the Prisma User record
-  let dbUser = await prisma.user.findUnique({
-    where: { email: authUser.email }
-  });
+  // 2. Ensure the profile is keyed to the canonical Supabase Auth UUID.
+  let dbUser;
+  try {
+    dbUser = await ensureUserProfile(authUser, prisma);
+  } catch (profileError) {
+    if (!(profileError instanceof UserProfileIdentityMismatchError)) throw profileError;
 
-  if (!dbUser) {
-    dbUser = await prisma.user.create({
-      data: {
-        id: authUser.id,
-        email: authUser.email,
-        auth_provider: "supabase",
-        role: "Customer"
-      }
-    });
+    return (
+      <div className="w-full min-h-[70vh] bg-white flex items-center justify-center px-6">
+        <div className="max-w-xl border border-gray-200 p-8">
+          <h1 className="text-xl font-bold uppercase tracking-wide mb-3">Account needs recovery</h1>
+          <p className="text-sm text-gray-600">
+            We found an older profile linked to this email with a different account ID.
+            Your information has not been changed. Please contact support so we can verify
+            and safely reconcile the account before you place an order.
+          </p>
+        </div>
+      </div>
+    );
   }
 
   // 3. Fetch Orders matching exact schema names

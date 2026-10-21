@@ -1,6 +1,7 @@
 "use server";
 
 import { prisma } from "@/lib/prisma";
+import { ensureUserProfile } from "@/lib/ensure-user-profile";
 import { createClient } from "@/utils/supabase/server";
 import { validateDiscountCode } from "@/lib/discounts";
 import { v4 as uuidv4 } from "uuid";
@@ -23,6 +24,9 @@ export async function createPendingOrder(cartItems, shippingDetails, discountCod
 
     if (!authUser) throw new Error("You must be logged in to checkout.");
     if (!shippingDetails.state) throw new Error("A valid state is required for shipping.");
+
+    // Do not let checkout depend on the customer having visited /account first.
+    const dbUser = await ensureUserProfile(authUser, prisma);
 
     // 1. Fetch live products/variants to calculate true prices securely
     let subtotal = 0;
@@ -77,14 +81,19 @@ export async function createPendingOrder(cartItems, shippingDetails, discountCod
       // A. Update the User profile if data is missing (Auto-Save Feature)
       const fullName = `${shippingDetails.firstName} ${shippingDetails.lastName}`.trim();
       
+      const currentUser = await tx.user.findUnique({
+        where: { id: dbUser.id },
+        select: { name: true, phone_number: true },
+      });
+
       await tx.user.update({
-        where: { id: authUser.id },
+        where: { id: dbUser.id },
         data: {
-          // Only update name/phone if they are currently null/empty
-          name: { set: fullName }, 
-          phone_number: { set: shippingDetails.phone },
-          // Always save the latest shipping address as their default
-          saved_addresses: shippingDetails 
+          // Preserve existing profile details; only auto-save missing values.
+          name: currentUser?.name ? undefined : fullName,
+          phone_number: currentUser?.phone_number ? undefined : shippingDetails.phone,
+          // Always save the latest shipping address as their default.
+          saved_addresses: shippingDetails
         }
       });
 
