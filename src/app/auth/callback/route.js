@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/utils/supabase/server'; // Adjust based on your setup
+import { createClient } from '@/utils/supabase/server';
+import { ensureUserProfile, UserProfileIdentityMismatchError } from '@/lib/ensure-user-profile';
 
 export async function GET(request) {
   const { searchParams, origin } = new URL(request.url);
@@ -13,8 +14,19 @@ export async function GET(request) {
     
     // Exchange the code for a secure session cookie
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    
+
     if (!error) {
+      const { data: { user: authUser }, error: userError } = await supabase.auth.getUser();
+      if (!userError && authUser) {
+        try {
+          await ensureUserProfile(authUser);
+        } catch (profileError) {
+          if (profileError instanceof UserProfileIdentityMismatchError) {
+            return NextResponse.redirect(`${origin}/account?profile_error=identity_mismatch`);
+          }
+          throw profileError;
+        }
+      }
       return NextResponse.redirect(`${origin}${next}`);
     }
   }
